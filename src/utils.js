@@ -1,5 +1,3 @@
-'use strict';
-
 const Errors = require('./errors');
 
 const WHITESPACE = /\s/;
@@ -28,14 +26,14 @@ const Utils = {
     }
 
     if (inputString[0] === '"') {
-      let innerStr = inputString.slice(1);
-      let endingQuote = innerStr.indexOf('"');
+      const innerStr = inputString.slice(1);
+      const endingQuote = innerStr.indexOf('"');
       if (endingQuote < 0) {
         throw new Errors.MalformedMessageError('Unexpected end of quoted string.');
       }
       return {
         value: innerStr.slice(0, endingQuote),
-        remain: inputString.slice(endingQuote + 2)
+        remain: inputString.slice(endingQuote + 2),
       };
     }
 
@@ -43,7 +41,7 @@ const Utils = {
     const endPos = endMatch ? endMatch.index : inputString.length;
     return {
       value: inputString.slice(0, endPos),
-      remain: inputString.slice(endPos)
+      remain: inputString.slice(endPos),
     };
   },
 
@@ -82,18 +80,18 @@ const Utils = {
    * otherwise malformed.
    */
   parseOperationString: (inputString) => {
-    var s = inputString || '';
+    let s = inputString || '';
     s = s.trim();
 
     const command = {};
 
     while (s.length) {
       let parsed = Utils.readString(s);
-      let key = parsed.value;
+      const key = parsed.value;
       s = Utils.consumeChar(parsed.remain, '=');
 
       parsed = Utils.readString(s);
-      let value = parsed.value;
+      const value = parsed.value;
       s = parsed.remain;
 
       command[key] = value;
@@ -128,15 +126,14 @@ const Utils = {
     const args = parsed.remain.trim();
 
     if (command === 'HIT') {
-      let operation = Utils.parseOperationString(args);
+      const operation = Utils.parseOperationString(args);
       return {
-        command: command,
-        operation: operation
+        command,
+        operation,
       };
-    } else {
-      throw new Errors.UnknownCommandError(`Unrecognized command: ${command}`);
     }
-  }
+    throw new Errors.UnknownCommandError(`Unrecognized command: ${command}`);
+  },
 };
 
 module.exports = Utils;

@@ -1,3 +1,7 @@
-'use strict';
+const paths = [
+  '**/*.js',
+  '!node_modules/**/*',
+];
 
-require('mocha-jshint')({ pretty: true });
+require('mocha-eslint')(paths);
+

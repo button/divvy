@@ -35,7 +35,7 @@ Continue to [Getting Started](#getting-started) for a more detailed example.
 ## Requirements
 
 * A Redis server.
-* NodeJS version 4 or newer.
+* NodeJS version 6.10.x or newer.
 * Clients: A TCP connection to the Divvy service.
 
 ## Getting Started
@@ -44,13 +44,17 @@ In this section, we'll run the server locally and show how to record "hits", the
 
 ### Install
 
+You can install and run tests with either Yarn or NPM.
+
+Yarn:
+```
+$ yarn
+$ yarn test
+```
+
+NPM:
 ```
 $ npm install
-```
-
-Optionally, you may run the unittests:
-
-```
 $ npm test
 ```
 
