@@ -35,7 +35,7 @@ Continue to [Getting Started](#getting-started) for a more detailed example.
 ## Requirements
 
 * A Redis server.
-* NodeJS version 4 or newer.
+* NodeJS version 6.10.x or newer.
 * Clients: A TCP connection to the Divvy service.
 
 ## Getting Started
