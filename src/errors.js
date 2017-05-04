@@ -1,5 +1,3 @@
-
-
 class DivvyError extends Error {
   constructor(message) {
     super(message);

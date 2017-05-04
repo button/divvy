@@ -1,5 +1,3 @@
-
-
 const Errors = require('./errors');
 
 const WHITESPACE = /\s/;

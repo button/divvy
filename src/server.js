@@ -1,5 +1,3 @@
-
-
 const debug = require('debug')('divvy');
 
 const EventEmitter = require('events');

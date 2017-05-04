@@ -1,5 +1,3 @@
-
-
 const Config = require('../src/config');
 const Server = require('../src/server');
 const Client = require('@button/divvy-client');
@@ -38,11 +36,12 @@ describe('src/server', function () {
         backend,
       });
 
-      statsd = server.statsd = {
+      statsd = {
         increment: sinon.spy(),
         gauge: sinon.spy(),
         timing: sinon.spy(),
       };
+      server.statsd = statsd;
 
       // Once the server is bound, connect a client.
       server.on('listening', (address) => {

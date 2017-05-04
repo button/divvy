@@ -1,5 +1,3 @@
-
-
 const Config = require('../src/config');
 const assert = require('assert-diff');
 

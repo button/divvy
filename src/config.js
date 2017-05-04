@@ -1,5 +1,3 @@
-
-
 const debug = require('debug')('divvy');
 const fs = require('fs');
 const ini = require('ini');
@@ -48,8 +46,8 @@ class Config {
       const rulegroupConfig = rawConfig[rulegroupString];
 
       const operation = Config.stringToOperation(rulegroupString);
-      const creditLimit = parseInt(rulegroupConfig.creditLimit) || 0;
-      const resetSeconds = parseInt(rulegroupConfig.resetSeconds) || 0;
+      const creditLimit = parseInt(rulegroupConfig.creditLimit, 10) || 0;
+      const resetSeconds = parseInt(rulegroupConfig.resetSeconds, 10) || 0;
       const actorField = rulegroupConfig.actorField || '';
       const comment = rulegroupConfig.comment;
 
@@ -108,8 +106,7 @@ class Config {
       for (const operationKey of Object.keys(rule.operation)) {
         const operationValue = rule.operation[operationKey];
         if (operationValue === '*') {
-          // Wildcard value is a match
-          continue;
+          // Wildcard value is a match.
         } else if (isGlobValue(operationValue)) {
           match = Config.parseGlob(operationValue).test(operation[operationKey]);
           break;

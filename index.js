@@ -1,9 +1,9 @@
-
-
 const redis = require('redis');
 const Backend = require('./src/backend');
 const Config = require('./src/config');
 const Server = require('./src/server');
+
+/* eslint-disable no-console */
 
 const configFile = process.argv[2];
 if (!configFile) {

@@ -1,5 +1,3 @@
-
-
 const Utils = require('../src/utils');
 const assert = require('assert');
 
