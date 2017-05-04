@@ -44,13 +44,17 @@ In this section, we'll run the server locally and show how to record "hits", the
 
 ### Install
 
+You can install and run tests with either Yarn or NPM.
+
+Yarn:
+```
+$ yarn
+$ yarn test
+```
+
+NPM:
 ```
 $ npm install
-```
-
-Optionally, you may run the unittests:
-
-```
 $ npm test
 ```
 
