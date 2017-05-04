@@ -119,6 +119,44 @@ describe('src/config', function () {
         comment: 'b',
       }, other);
     });
+
+    it('with a glob key proceeded by normal key', function () {
+      let rule = config.findRule({
+        method: 'POST',
+        path: '/accounts/logout',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      });
+      assert.deepEqual({
+        operation: {
+          method: 'POST',
+          path: '/account*',
+          isAuthenticated: 'true',
+          ip: '*',
+        },
+        creditLimit: 1,
+        resetSeconds: 60,
+        actorField: 'ip',
+        comment: '1 rpm for POST /account*, by ip',
+      }, rule);
+
+      rule = config.findRule({
+        method: 'POST',
+        path: '/accounts/logout',
+        isAuthenticated: 'nope',  // must cause a different rule to match
+        ip: '1.2.3.4',
+      });
+      assert.deepEqual({
+        operation: {
+          method: 'POST',
+          ip: '*',
+        },
+        creditLimit: 5,
+        resetSeconds: 60,
+        actorField: 'ip',
+        comment: '5 rpm for any POST, by ip',
+      }, rule);
+    });
   });
 
   describe('#parseGlob', function () {

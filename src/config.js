@@ -106,12 +106,15 @@ class Config {
       for (const operationKey of Object.keys(rule.operation)) {
         const operationValue = rule.operation[operationKey];
         if (operationValue === '*') {
-          // Wildcard value is a match.
+          match = true;
         } else if (isGlobValue(operationValue)) {
           match = Config.parseGlob(operationValue).test(operation[operationKey]);
-          break;
         } else if (operationValue !== operation[operationKey]) {
           match = false;
+        }
+
+        // Skip testing additional operations if rule has already failed.
+        if (!match) {
           break;
         }
       }
