@@ -1,4 +1,4 @@
-'use strict';
+
 
 const debug = require('debug')('divvy');
 
@@ -48,7 +48,7 @@ class Backend {
       return Promise.resolve({
         isAllowed: false,
         currentCredit: 0,
-        nextResetSeconds: -1
+        nextResetSeconds: -1,
       });
     }
 
@@ -68,15 +68,15 @@ class Backend {
 
     return this.redis.evalshaAsync(
         this.scriptSha, 1, keyName, resetSeconds, initialValue).then((result) => {
-      if (!result || result.length !== 3) {
-        throw new Error(`Unexpected result from redis: "${result}"`);
-      }
-      return {
-        isAllowed: !!result[0],
-        currentCredit: result[1],
-        nextResetSeconds: result[2]
-      };
-    });
+          if (!result || result.length !== 3) {
+            throw new Error(`Unexpected result from redis: "${result}"`);
+          }
+          return {
+            isAllowed: !!result[0],
+            currentCredit: result[1],
+            nextResetSeconds: result[2],
+          };
+        });
   }
 
   initialize() {

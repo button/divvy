@@ -1,110 +1,109 @@
-'use strict';
+
 
 const Utils = require('../src/utils');
 const assert = require('assert');
 
-describe('src/utils', () => {
-
-  describe('#readString', () => {
-    it('for valid strings', () => {
+describe('src/utils', function () {
+  describe('#readString', function () {
+    it('for valid strings', function () {
       assert.deepEqual({
         value: 'hello',
-        remain: '=world'
+        remain: '=world',
       }, Utils.readString('hello=world'));
 
       assert.deepEqual({
         value: 'hello',
-        remain: '=world'
+        remain: '=world',
       }, Utils.readString('"hello"=world'));
 
       assert.deepEqual({
         value: 'hello',
-        remain: '=world'
+        remain: '=world',
       }, Utils.readString('"hello"=world'));
 
       assert.deepEqual({
         value: '',
-        remain: '=world'
+        remain: '=world',
       }, Utils.readString('""=world'));
 
       assert.deepEqual({
         value: 'hello',
-        remain: ''
+        remain: '',
       }, Utils.readString('hello'));
 
       assert.deepEqual({
         value: 'hello',
-        remain: ''
+        remain: '',
       }, Utils.readString('"hello"'));
 
       assert.deepEqual({
         value: '',
-        remain: ''
+        remain: '',
       }, Utils.readString(''));
 
       assert.deepEqual({
         value: '',
-        remain: ''
+        remain: '',
       }, Utils.readString('""'));
 
       assert.deepEqual({
         value: '',
-        remain: ''
+        remain: '',
       }, Utils.readString(null));
     });
 
-    it('for invalid strings', () => {
+    it('for invalid strings', function () {
       assert.throws(() => Utils.readString('"quote going nowhere'),
         /Unexpected end of quoted string/);
     });
   });
 
-  describe('#consumeChar', () => {
-    it('finds expected char', () => {
+  describe('#consumeChar', function () {
+    it('finds expected char', function () {
       assert.equal('YO', Utils.consumeChar('BYO', 'B'));
       assert.equal('', Utils.consumeChar('O', 'O'));
     });
 
-    it('errors when missing', () => {
+    it('errors when missing', function () {
       assert.throws(() => Utils.consumeChar('XXX', 'Y'), /Expected 'Y', found 'X'/);
     });
   });
 
-  describe('#parseOperationString', () => {
-    it('for well-formed strings', () => {
+  describe('#parseOperationString', function () {
+    it('for well-formed strings', function () {
       assert.deepEqual({
-        goodnight: 'room'
+        goodnight: 'room',
       }, Utils.parseOperationString('goodnight=room'));
 
       assert.deepEqual({
-        goodnight: 'room'
+        goodnight: 'room',
       }, Utils.parseOperationString('   goodnight=room  '));
 
       assert.deepEqual({
         goodnight: 'room',
-        goodbye: 'moon'
+        goodbye: 'moon',
       }, Utils.parseOperationString('goodbye=moon goodnight=room'));
 
       assert.deepEqual({
         goodnight: 'room',
-        goodbye: 'moon'
+        goodbye: 'moon',
       }, Utils.parseOperationString('\t \tgoodbye=moon\t\t goodnight=room\t\t'));
 
       assert.deepEqual({
-        goodnight: 'room'
+        goodnight: 'room',
       }, Utils.parseOperationString('"goodnight"=room'));
 
       assert.deepEqual({
-        goodnight: 'r o o m'
+        goodnight: 'r o o m',
       }, Utils.parseOperationString('"goodnight"="r o o m" '));
 
       assert.deepEqual({
         goodnight: 'room',
-        goodbye: 'moon'
+        goodbye: 'moon',
       }, Utils.parseOperationString('goodbye="moon" "goodnight"=room'));
     });
 
-    it('for malformed strings', () => {
+    it('for malformed strings', function () {
       assert.throws(() => Utils.parseOperationString('goodbye=" ... '),
         /Unexpected end of quoted string/);
 
@@ -116,45 +115,41 @@ describe('src/utils', () => {
 
       assert.throws(() => Utils.parseOperationString('goodnight="room"ba'),
         /Expected whitespace, found 'b'/);
-
     });
   });
 
-  describe('#parseCommand', () => {
-
-    describe('HIT', () => {
-      it('with an empty operation', () => {
+  describe('#parseCommand', function () {
+    describe('HIT', function () {
+      it('with an empty operation', function () {
         assert.deepEqual({
           command: 'HIT',
-          operation: {}
+          operation: {},
         }, Utils.parseCommand('HIT'));
 
         assert.deepEqual({
           command: 'HIT',
-          operation: {}
+          operation: {},
         }, Utils.parseCommand('HIT      '));
       });
 
-      it('with a simple operation', () => {
+      it('with a simple operation', function () {
         assert.deepEqual({
           command: 'HIT',
-          operation: { hand: '20' }
+          operation: { hand: '20' },
         }, Utils.parseCommand('HIT hand=20'));
 
         assert.deepEqual({
           command: 'HIT',
-          operation: { hand: '20' }
+          operation: { hand: '20' },
         }, Utils.parseCommand('HIT "hand"="20"   '));
       });
     });
 
-    describe('UNKNOWN', () => {
-      it('throws an error', () => {
+    describe('UNKNOWN', function () {
+      it('throws an error', function () {
         assert.throws(() => Utils.parseCommand('UNKNOWN bla=bla'),
           /Unrecognized command: UNKNOWN/);
       });
     });
-
   });
-
 });

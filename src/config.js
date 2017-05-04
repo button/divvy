@@ -1,4 +1,4 @@
-'use strict';
+
 
 const debug = require('debug')('divvy');
 const fs = require('fs');
@@ -44,14 +44,14 @@ class Config {
     const rawConfig = ini.parse(fs.readFileSync(filename, 'utf-8'));
     const config = new Config();
 
-    for (let rulegroupString of Object.keys(rawConfig)) {
-      let rulegroupConfig = rawConfig[rulegroupString];
+    for (const rulegroupString of Object.keys(rawConfig)) {
+      const rulegroupConfig = rawConfig[rulegroupString];
 
-      let operation = Config.stringToOperation(rulegroupString);
-      let creditLimit = parseInt(rulegroupConfig.creditLimit) || 0;
-      let resetSeconds = parseInt(rulegroupConfig.resetSeconds) || 0;
-      let actorField = rulegroupConfig.actorField || '';
-      let comment = rulegroupConfig.comment;
+      const operation = Config.stringToOperation(rulegroupString);
+      const creditLimit = parseInt(rulegroupConfig.creditLimit) || 0;
+      const resetSeconds = parseInt(rulegroupConfig.resetSeconds) || 0;
+      const actorField = rulegroupConfig.actorField || '';
+      const comment = rulegroupConfig.comment;
 
       config.addRule(operation, creditLimit, resetSeconds, actorField, comment);
     }
@@ -65,8 +65,8 @@ class Config {
     if (s === 'default') {
       return operation;
     }
-    for (let kv of s.split(/\s+/)) {
-      let pair = kv.split('=');
+    for (const kv of s.split(/\s+/)) {
+      const pair = kv.split('=');
       operation[pair[0]] = pair[1] || '';
     }
     return operation;
@@ -90,11 +90,11 @@ class Config {
     }
 
     const rule = {
-      operation: operation,
-      creditLimit: creditLimit,
-      resetSeconds: resetSeconds,
-      actorField: actorField,
-      comment: comment || null
+      operation,
+      creditLimit,
+      resetSeconds,
+      actorField,
+      comment: comment || null,
     };
     this.rules.push(rule);
 
@@ -103,11 +103,10 @@ class Config {
 
   /** Returns the rule matching operation, or `null` if no match. */
   findRule(operation) {
-    for (let rule of this.rules) {
-
+    for (const rule of this.rules) {
       let match = true;
-      for (let operationKey of Object.keys(rule.operation)) {
-        let operationValue = rule.operation[operationKey];
+      for (const operationKey of Object.keys(rule.operation)) {
+        const operationValue = rule.operation[operationKey];
         if (operationValue === '*') {
           // Wildcard value is a match
           continue;

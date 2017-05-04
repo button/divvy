@@ -1,4 +1,4 @@
-'use strict';
+
 
 const Config = require('../src/config');
 const Server = require('../src/server');
@@ -11,39 +11,37 @@ const sinon = require('sinon');
  * client, and the server's interface to the backend.
  */
 
-describe('src/server', () => {
+describe('src/server', function () {
+  describe('#serve', function () {
+    let backend;
+    let config;
+    let server;
+    let serverPort;
+    let client;
+    let statsd;
 
-  describe('#serve', () => {
-
-    var backend;
-    var config;
-    var server;
-    var serverPort;
-    var client;
-    var statsd;
-
-    beforeEach((done) => {
-      config = Config.fromIniFile(__dirname + '/test-config.ini');
+    beforeEach(function (done) {
+      config = Config.fromIniFile(`${__dirname}/test-config.ini`);
 
       backend = {
-        initialize: () =>  {
+        initialize: () => {
           return Promise.resolve();
         },
 
-        hit: sinon.stub()
+        hit: sinon.stub(),
       };
 
       // Create a server on port 0 (ephemeral / randomly-selected port)
       server = new Server({
         port: 0,
-        config: config,
-        backend: backend
+        config,
+        backend,
       });
 
       statsd = server.statsd = {
         increment: sinon.spy(),
         gauge: sinon.spy(),
-        timing: sinon.spy()
+        timing: sinon.spy(),
       };
 
       // Once the server is bound, connect a client.
@@ -64,35 +62,34 @@ describe('src/server', () => {
       backend.initialize().then(() => {
         server.serve();
       });
-
     });
 
-    it('for an operation where all params match', (done) => {
+    it('for an operation where all params match', function (done) {
       // Mock out the response from redis; the values don't matter
       // for client/server testing purposes.
       backend.hit.onCall(0).returns(Promise.resolve({
         isAllowed: true,
         currentCredit: 100,
-        nextResetSeconds: 60
+        nextResetSeconds: 60,
       }));
 
       client.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      }).then((response) => {
+        sinon.assert.calledWith(backend.hit, {
           method: 'GET',
           path: '/ping',
           isAuthenticated: 'true',
-          ip: '1.2.3.4'
-      }).then((response) => {
-        sinon.assert.calledWith(backend.hit, {
-            method: 'GET',
-            path: '/ping',
-            isAuthenticated: 'true',
-            ip: '*'
-          }, '1.2.3.4', 100, 60);
+          ip: '*',
+        }, '1.2.3.4', 100, 60);
 
         assert.deepEqual(response, {
           isAllowed: true,
           currentCredit: 100,
-          nextResetSeconds: 60
+          nextResetSeconds: 60,
         });
 
         sinon.assert.callCount(statsd.increment, 2);
@@ -106,31 +103,31 @@ describe('src/server', () => {
       }).catch(done);
     });
 
-    it('for an operation where some params match', (done) => {
+    it('for an operation where some params match', function (done) {
       // Mock out the response from redis; the values don't matter
       // for client/server testing purposes.
       backend.hit.onCall(0).returns(Promise.resolve({
         isAllowed: true,
         currentCredit: 10,
-        nextResetSeconds: 10
+        nextResetSeconds: 10,
       }));
 
       // This operation will match a config rule where "path" is ignored,
       // so we should *not* see that parameter when the operation reaches
       // the backend.
       client.hit({
-          method: 'GET',
-          path: '/ping',
-          isAuthenticated: 'bloop',
-          ip: '1.2.3.4'
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'bloop',
+        ip: '1.2.3.4',
       }).then((response) => {
         sinon.assert.calledWith(backend.hit,
-          {method: 'GET', path: '/ping', ip: '*'}, '1.2.3.4', 10, 60);
+          { method: 'GET', path: '/ping', ip: '*' }, '1.2.3.4', 10, 60);
 
         assert.deepEqual(response, {
           isAllowed: true,
           currentCredit: 10,
-          nextResetSeconds: 10
+          nextResetSeconds: 10,
         });
 
         sinon.assert.callCount(statsd.increment, 2);
@@ -144,27 +141,27 @@ describe('src/server', () => {
       }).catch(done);
     });
 
-    it('for an operation with no actor', (done) => {
+    it('for an operation with no actor', function (done) {
       // Mock out the response from redis; the values don't matter
       // for client/server testing purposes.
       backend.hit.onCall(0).returns(Promise.resolve({
         isAllowed: true,
         currentCredit: 10,
-        nextResetSeconds: 10
+        nextResetSeconds: 10,
       }));
 
       // This operation will match a config rule where "path" is ignored,
       // so we should *not* see that parameter when the operation reaches
       // the backend.
       client.hit({
-          method: 'DELETE'
+        method: 'DELETE',
       }).then((response) => {
         sinon.assert.calledWith(backend.hit, {}, '', 1, 60);
 
         assert.deepEqual(response, {
           isAllowed: true,
           currentCredit: 10,
-          nextResetSeconds: 10
+          nextResetSeconds: 10,
         });
 
         sinon.assert.callCount(statsd.increment, 2);
@@ -178,7 +175,7 @@ describe('src/server', () => {
       }).catch(done);
     });
 
-    it('for an unknown command', (done) => {
+    it('for an unknown command', function (done) {
       client._enqueueMessage('EGGPLANT not-tasty\n').promise.then(() => {
         done(new Error('Should have failed'));
       }).catch((err) => {
@@ -195,7 +192,7 @@ describe('src/server', () => {
       });
     });
 
-    it('for a malformed command', (done) => {
+    it('for a malformed command', function (done) {
       // This operation will match a config rule where "path" is ignored,
       // so we should *not* see that parameter when the operation reaches
       // the backend.
@@ -215,7 +212,7 @@ describe('src/server', () => {
       });
     });
 
-    it('tracks connection close', (done) => {
+    it('tracks connection close', function (done) {
       server.on('client-disconnected', () => {
         sinon.assert.calledWith(statsd.gauge, 'connections', 1);
         sinon.assert.calledWith(statsd.gauge, 'connections', 0);
@@ -225,17 +222,17 @@ describe('src/server', () => {
       client.close();
     });
 
-    it('tracks connections', (done) => {
-      var client2 = new Client('', serverPort);
+    it('tracks connections', function (done) {
+      const client2 = new Client('', serverPort);
       client2.connect();
 
-      var client3 = new Client('', serverPort);
+      const client3 = new Client('', serverPort);
       client3.connect();
 
-      var client4 = new Client('', serverPort);
+      const client4 = new Client('', serverPort);
       client4.connect();
 
-      var expectedConnections = 2;
+      let expectedConnections = 2;
       server.on('client-connected', () => {
         sinon.assert.calledWith(statsd.gauge, 'connections', expectedConnections);
         expectedConnections++;
@@ -243,26 +240,21 @@ describe('src/server', () => {
           done();
         }
       });
-
     });
-
   });
 
-  describe('Server.getMatchType', function() {
-
-    it('returns none for null rules (no match)', function() {
+  describe('Server.getMatchType', function () {
+    it('returns none for null rules (no match)', function () {
       assert.equal('none', Server.getMatchType(null));
     });
 
-    it('returns rule for rule matches', function() {
+    it('returns rule for rule matches', function () {
       assert.equal('rule', Server.getMatchType({ foo: '1' }));
       assert.equal('rule', Server.getMatchType({ foo: '1', bar: 2 }));
     });
 
-    it('returns default for empty rule matches', function() {
+    it('returns default for empty rule matches', function () {
       assert.equal('default', Server.getMatchType({}));
     });
-
   });
-
 });

@@ -1,4 +1,4 @@
-'use strict';
+
 
 const debug = require('debug')('divvy');
 
@@ -55,21 +55,21 @@ class Server extends EventEmitter {
         host: options.statsdHost,
         port: options.statsdPort,
         prefix: options.statsdPrefix || '',
-        tcp: !!options.statsdUseTcp
+        tcp: !!options.statsdUseTcp,
       });
     } else {
       this.statsd = {
-        increment: function() {},
-        gauge: function() {},
-        timing: function() {}
+        increment() {},
+        gauge() {},
+        timing() {},
       };
     }
   }
 
   serve() {
     const server = net.createServer((conn) => {
-      let remoteAddr = conn.address();
-      let addr = `${remoteAddr.address}:${remoteAddr.port}`;
+      const remoteAddr = conn.address();
+      const addr = `${remoteAddr.address}:${remoteAddr.port}`;
 
       debug('connection opened: %s', addr);
       conn.on('error', (err) => {
@@ -113,7 +113,7 @@ class Server extends EventEmitter {
 
     const startDate = new Date();
     try {
-      let command = Utils.parseCommand(line);
+      const command = Utils.parseCommand(line);
       this.handleHit(conn, command.operation, startDate);
     } catch (e) {
       if (e instanceof Errors.UnknownCommandError) {
@@ -129,15 +129,15 @@ class Server extends EventEmitter {
     debug('hit: operation=%j rule=%j%s', operation, rule,
       (rule && rule.comment) ? ` (${rule.comment})` : '');
 
-    var oper;
+    let oper;
     if (!rule) {
       oper = Promise.resolve({
         isAllowed: false,
         currentCredit: 0,
-        nextResetSeconds: -1
+        nextResetSeconds: -1,
       });
     } else {
-      let actor = rule.actorField ?
+      const actor = rule.actorField ?
         (operation[rule.actorField] || '') : '';
 
       oper = this.backend.hit(rule.operation,

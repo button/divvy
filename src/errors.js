@@ -1,4 +1,4 @@
-'use strict';
+
 
 class DivvyError extends Error {
   constructor(message) {
@@ -22,7 +22,7 @@ class UnknownCommandError extends DivvyError {
 }
 
 module.exports = {
-  DivvyError: DivvyError,
-  MalformedMessageError: MalformedMessageError,
-  UnknownCommandError: UnknownCommandError
+  DivvyError,
+  MalformedMessageError,
+  UnknownCommandError,
 };

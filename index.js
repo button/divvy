@@ -1,4 +1,4 @@
-'use strict';
+
 
 const redis = require('redis');
 const Backend = require('./src/backend');
@@ -16,16 +16,16 @@ const config = Config.fromIniFile(configFile);
 const redisPort = parseInt(process.env.REDIS_PORT, 10) || 6379;
 const redisHost = process.env.REDIS_HOST || 'localhost';
 const redisClient = redis.createClient(redisPort, redisHost);
-const backend = new Backend({ redisClient: redisClient });
+const backend = new Backend({ redisClient });
 
 const server = new Server({
-  backend: backend,
-  config: config,
+  backend,
+  config,
   port: process.env.PORT,
   statsdHost: process.env.STATSD_HOST,
   statsdPort: parseInt(process.env.STATSD_PORT, 10),
   statsdPrefix: process.env.STATSD_PREFIX || '',
-  statsdUseTcp: !!process.env.STATSD_USE_TCP
+  statsdUseTcp: !!process.env.STATSD_USE_TCP,
 });
 
 backend.initialize().then(() => {
