@@ -7,6 +7,7 @@ Divvy is a quota / rate limiter service, implemented in NodeJS and backed by Red
 1. [Features](#features)
 2. [Requirements](#requirements)
 3. [Getting Started](#getting-started)
+8. [Running With Docker](#running-with-docker)
 4. [Configuration](#configuration)
 5. [Protocol](#protocol)
 6. [Server Options](#server-options)
@@ -65,6 +66,14 @@ Launch the server in the foreground:
 ```
 $ node index.js examples/example-config.ini
 Listening on port TCP port 8321, Redis host localhost:6379
+```
+
+## Running With Docker
+You can use docker and docker-compose to run a divvy stack including redis. Requires [Docker for Mac](https://www.docker.com/docker-mac) and Xcode command line tools to be installed `$ xcode-select --install`
+NOTE: this uses example config file `examples/example-config.ini`
+```
+$ make build
+$ make up
 ```
 
 ### Consume quota

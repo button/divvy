@@ -1,0 +1,20 @@
+version: '2'
+services:
+  divvy:
+    build: .
+    image: ${ORGANIZATION}/${CONTAINER}:${VERSION}
+    container_name: ${CONTAINER}
+    tty: true
+    ports:
+      - ${PORT}:${PORT}
+    environment:
+      - PORT=${PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    volumes:
+      - ./examples/example-config.ini:/app/config/default.ini
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - 6379:6379
