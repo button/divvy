@@ -69,7 +69,7 @@ Listening on port TCP port 8321, Redis host localhost:6379
 
 ### Running With Docker
 You can use docker and docker-compose to run a divvy stack including redis. Requires [Docker for Mac](https://www.docker.com/docker-mac) and Xcode command line tools to be installed `$ xcode-select --install`
-NOTE: this uses example config file `examples/example-config.ini`
+NOTE: this uses example config file `examples/example-config.ini` and mounts inside the container as `/app/config/default.ini` 
 ```
 $ make build
 $ make up
