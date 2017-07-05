@@ -11,7 +11,7 @@ up :
 down :
 	docker-compose down
 
-tail :
+shell :
 	docker exec -ti $(CONTAINER) /bin/bash
 
 tail :
