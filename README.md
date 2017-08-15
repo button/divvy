@@ -266,6 +266,8 @@ The server can be configured with several environment variables.
 * `STATSD_PORT`: Port of statsd server (no default);
 * `STATSD_PREFIX`: Optional prefix to use with statsd metrics (no default).
 * `STATSD_USE_TCP`: If non-empty, use tcp instead of udp (no default).
+* `PROMETHEUS_HTTP_PORT`: Port to serve prometheus metrics from (no default).
+* `PROMETHEUS_METRICS_PATH`: HTTP path to expose prometheus metrics from (no default).
 
 ## Statistics
 
@@ -279,6 +281,15 @@ If `STATSD_HOST` and `STATSD_PORT` are given, the server will report certain met
   * `<prefix>.hit`: Time to complete `hit` operations.
 * Gauges
   * `<prefix>.connections`: Concurrent connections.
+
+Alternatively if you are using Prometheus, you may specify the `PROMETHEUS_HTTP_PORT` and `PROMETHEUS_METRICS_PATH` environment variables to collect and metrics and allow your Prometheus scraper to query them. The following metrics will be collected:
+
+* `divvy_tcp_connections_total`: Gauge of current open TCP connections.
+* `divvy_hit_duration_seconds`: Histogram of processing duration for HITs.
+* `divvy_hits_total`: Counter of all HIT operations.
+  * Labels: `status` (either `accepted` or `rejected`), `type` (either `none`, `rule`, or `default`).
+* `divvy_errors_total`: Counter of divvy errors.
+  * Labels: `code` (the type of error, such as `unknown-command`).
 
 ## Client Libraries
 

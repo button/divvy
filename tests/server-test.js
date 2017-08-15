@@ -10,13 +10,21 @@ const sinon = require('sinon');
  */
 
 describe('src/server', function () {
+  before(function () {
+    this.clock = sinon.useFakeTimers();
+  });
+
+  after(function () {
+    this.clock.restore();
+  });
+
   describe('#serve', function () {
     let backend;
     let config;
     let server;
     let serverPort;
     let client;
-    let statsd;
+    let instrumenter;
 
     beforeEach(function (done) {
       config = Config.fromIniFile(`${__dirname}/test-config.ini`);
@@ -29,19 +37,20 @@ describe('src/server', function () {
         hit: sinon.stub(),
       };
 
+      instrumenter = {
+        countHit: sinon.spy(),
+        countError: sinon.spy(),
+        timeHit: sinon.spy(),
+        gaugeCurrentConnections: sinon.spy(),
+      };
+
       // Create a server on port 0 (ephemeral / randomly-selected port)
       server = new Server({
         port: 0,
         config,
         backend,
+        instrumenter,
       });
-
-      statsd = {
-        increment: sinon.spy(),
-        gauge: sinon.spy(),
-        timing: sinon.spy(),
-      };
-      server.statsd = statsd;
 
       // Once the server is bound, connect a client.
       server.on('listening', (address) => {
@@ -52,8 +61,8 @@ describe('src/server', function () {
 
       // Once the client has connected, verify connection count and finish.
       server.once('client-connected', () => {
-        sinon.assert.callCount(statsd.gauge, 1);
-        sinon.assert.calledWith(statsd.gauge, 'connections');
+        sinon.assert.callCount(instrumenter.gaugeCurrentConnections, 1);
+        sinon.assert.calledWith(instrumenter.gaugeCurrentConnections, 1);
         done();
       });
 
@@ -91,12 +100,13 @@ describe('src/server', function () {
           nextResetSeconds: 60,
         });
 
-        sinon.assert.callCount(statsd.increment, 2);
-        sinon.assert.calledWith(statsd.increment, 'hit.accepted');
-        sinon.assert.calledWith(statsd.increment, 'hit.accepted.rule');
+        sinon.assert.callCount(instrumenter.countHit, 1);
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule');
 
-        sinon.assert.callCount(statsd.timing, 1);
-        sinon.assert.calledWith(statsd.timing, 'hit');
+        sinon.assert.callCount(instrumenter.timeHit, 1);
+        // Since we've installed sinon's fake timers we can safely compare to new Date()
+        // as we haven't ticked the clock
+        sinon.assert.calledWith(instrumenter.timeHit, new Date());
 
         done();
       }).catch(done);
@@ -129,12 +139,13 @@ describe('src/server', function () {
           nextResetSeconds: 10,
         });
 
-        sinon.assert.callCount(statsd.increment, 2);
-        sinon.assert.calledWith(statsd.increment, 'hit.accepted');
-        sinon.assert.calledWith(statsd.increment, 'hit.accepted.rule');
+        sinon.assert.callCount(instrumenter.countHit, 1);
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule');
 
-        sinon.assert.callCount(statsd.timing, 1);
-        sinon.assert.calledWith(statsd.timing, 'hit');
+        sinon.assert.callCount(instrumenter.timeHit, 1);
+        // Since we've installed sinon's fake timers we can safely compare to new Date()
+        // as we haven't ticked the clock
+        sinon.assert.calledWith(instrumenter.timeHit, new Date());
 
         done();
       }).catch(done);
@@ -163,12 +174,13 @@ describe('src/server', function () {
           nextResetSeconds: 10,
         });
 
-        sinon.assert.callCount(statsd.increment, 2);
-        sinon.assert.calledWith(statsd.increment, 'hit.accepted');
-        sinon.assert.calledWith(statsd.increment, 'hit.accepted.rule');
+        sinon.assert.callCount(instrumenter.countHit, 1);
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule');
 
-        sinon.assert.callCount(statsd.timing, 1);
-        sinon.assert.calledWith(statsd.timing, 'hit');
+        sinon.assert.callCount(instrumenter.timeHit, 1);
+        // Since we've installed sinon's fake timers we can safely compare to new Date()
+        // as we haven't ticked the clock
+        sinon.assert.calledWith(instrumenter.timeHit, new Date());
 
         done();
       }).catch(done);
@@ -180,10 +192,10 @@ describe('src/server', function () {
       }).catch((err) => {
         assert.equal('ERR unknown-command "Unrecognized command: EGGPLANT"', err.message);
 
-        sinon.assert.callCount(statsd.increment, 1);
-        sinon.assert.calledWith(statsd.increment, 'error.unknown-command');
+        sinon.assert.callCount(instrumenter.countError, 1);
+        sinon.assert.calledWith(instrumenter.countError, 'unknown-command');
 
-        sinon.assert.callCount(statsd.timing, 0);
+        sinon.assert.callCount(instrumenter.timeHit, 0);
 
         done();
       }).catch((err) => {
@@ -200,10 +212,10 @@ describe('src/server', function () {
       }).catch((err) => {
         assert.equal('ERR unknown "Unexpected end of quoted string."', err.message);
 
-        sinon.assert.callCount(statsd.increment, 1);
-        sinon.assert.calledWith(statsd.increment, 'error.unknown');
+        sinon.assert.callCount(instrumenter.countError, 1);
+        sinon.assert.calledWith(instrumenter.countError, 'unknown');
 
-        sinon.assert.callCount(statsd.timing, 0);
+        sinon.assert.callCount(instrumenter.timeHit, 0);
 
         done();
       }).catch((err) => {
@@ -213,8 +225,8 @@ describe('src/server', function () {
 
     it('tracks connection close', function (done) {
       server.on('client-disconnected', () => {
-        sinon.assert.calledWith(statsd.gauge, 'connections', 1);
-        sinon.assert.calledWith(statsd.gauge, 'connections', 0);
+        sinon.assert.calledWith(instrumenter.gaugeCurrentConnections, 1);
+        sinon.assert.calledWith(instrumenter.gaugeCurrentConnections, 0);
         done();
       });
 
@@ -233,7 +245,7 @@ describe('src/server', function () {
 
       let expectedConnections = 2;
       server.on('client-connected', () => {
-        sinon.assert.calledWith(statsd.gauge, 'connections', expectedConnections);
+        sinon.assert.calledWith(instrumenter.gaugeCurrentConnections, expectedConnections);
         expectedConnections++;
         if (expectedConnections === 4) {
           done();
