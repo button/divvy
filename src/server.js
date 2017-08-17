@@ -1,7 +1,6 @@
 const debug = require('debug')('divvy');
 
 const EventEmitter = require('events');
-const StatsdClient = require('statsd-client');
 const net = require('net');
 const carrier = require('carrier');
 const Errors = require('./errors');
@@ -22,17 +21,13 @@ const ERROR_CODE_UNKNOWN = 'unknown';
  * @fires Server#listening
  */
 class Server extends EventEmitter {
-
   /**
    * Constructor
    *
+   * @param  {Object} options.instrumenter     An `Instrumenter` instance for monitoring.
    * @param  {Object} options.backend          A `Backend` instance.
    * @param  {Object} options.config           A `Config` instance.
    * @param  {number} options.port             Port to serve on (optional, default 8321).
-   * @param  {string} options.statsdHost       Statsd hostname for metrics (optional, no default).
-   * @param  {number} options.statsdPort       Statsd port (optional, no default).
-   * @param  {string} options.statsdPrefix     Prefix to use with statsd metrics (default '');
-   * @param  {boolean} options.statsdUseTcp    If truthy, use a TCP statsd client instead of UDP.
    */
   constructor(options) {
     super();
@@ -44,24 +39,11 @@ class Server extends EventEmitter {
 
     this.backend = options.backend;
     this.config = options.config;
+    this.instrumenter = options.instrumenter;
+
     this.port = (options.port !== undefined) ? options.port : DEFAULT_PORT;
 
     this.currentConnections = 0;
-
-    if (options.statsdHost && options.statsdPort) {
-      this.statsd = new StatsdClient({
-        host: options.statsdHost,
-        port: options.statsdPort,
-        prefix: options.statsdPrefix || '',
-        tcp: !!options.statsdUseTcp,
-      });
-    } else {
-      this.statsd = {
-        increment() {},
-        gauge() {},
-        timing() {},
-      };
-    }
   }
 
   serve() {
@@ -75,7 +57,7 @@ class Server extends EventEmitter {
       });
 
       this.currentConnections += 1;
-      this.statsd.gauge('connections', this.currentConnections);
+      this.instrumenter.gaugeCurrentConnections(this.currentConnections);
 
       carrier.carry(conn, (line) => {
         this.handleCommand(line, conn);
@@ -86,7 +68,7 @@ class Server extends EventEmitter {
       conn.on('close', () => {
         debug('connection closed: %s', addr);
         this.currentConnections -= 1;
-        this.statsd.gauge('connections', this.currentConnections);
+        this.instrumenter.gaugeCurrentConnections(this.currentConnections);
         this.emit('client-disconnected', conn);
       });
     });
@@ -148,11 +130,10 @@ class Server extends EventEmitter {
     return oper.then((status) => {
       this.sendStatus(conn, STATUS_OK,
         `${!!status.isAllowed} ${status.currentCredit} ${status.nextResetSeconds}`);
-      this.statsd.timing('hit', startDate);
-      const statName = status.isAllowed ? 'hit.accepted' : 'hit.rejected';
+      this.instrumenter.timeHit(startDate);
+      const result = status.isAllowed ? 'accepted' : 'rejected';
       const matchType = Server.getMatchType(rule);
-      this.statsd.increment(statName);
-      this.statsd.increment(`${statName}.${matchType}`);
+      this.instrumenter.countHit(result, matchType);
     }).catch((err) => {
       this.sendError(conn, `Server error: ${err}`);
     });
@@ -160,7 +141,7 @@ class Server extends EventEmitter {
 
   sendError(conn, errorCode, errorMessage) {
     this.sendStatus(conn, STATUS_ERROR, `${errorCode} "${errorMessage}"`);
-    this.statsd.increment(`error.${errorCode}`);
+    this.instrumenter.countError(errorCode);
   }
 
   sendStatus(conn, status, message) {
