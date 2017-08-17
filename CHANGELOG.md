@@ -2,7 +2,7 @@
 
 ## v1.1.0 (2017-08-15)
 
-* Feature: Enable Prometheus metric scraping by exporting `PROMETHEUS_HTTP_PORT` and `PROMETHEUS_METRICS_PATH` environment variables.
+* Feature: Enable Prometheus metric scraping by exporting `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables.
 
 ## v1.0.1 (2017-05-03)
 

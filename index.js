@@ -22,7 +22,7 @@ const redisHost = process.env.REDIS_HOST || 'localhost';
 const redisClient = redis.createClient(redisPort, redisHost);
 const backend = new Backend({ redisClient });
 
-const prometheusHttpPort = process.env.PROMETHEUS_HTTP_PORT;
+const httpServicePort = process.env.HTTP_SERVICE_PORT;
 const prometheusMetricsPath = process.env.PROMETHEUS_METRICS_PATH;
 
 const server = new Server({
@@ -40,22 +40,22 @@ const server = new Server({
 backend.initialize().then(() => {
   console.log(`Listening on port TCP port ${server.port}, Redis host ${redisHost}:${redisPort}`);
 
-  if (prometheusHttpPort && prometheusMetricsPath) {
+  if (httpServicePort && prometheusMetricsPath) {
     WebServer.createAndServe({
-      port: parseInt(prometheusHttpPort, 10),
+      port: parseInt(httpServicePort, 10),
       metricsPath: prometheusMetricsPath,
     });
 
     const metricsLocation = url.format({
       protocol: 'http',
       hostname: '127.0.0.1',
-      port: prometheusHttpPort,
+      port: httpServicePort,
       pathname: prometheusMetricsPath.startsWith('/') ? prometheusMetricsPath : `/${prometheusMetricsPath}`,
     });
 
     console.log(`Serving prometheus metrics at ${metricsLocation}`);
-  } else if (prometheusHttpPort || prometheusMetricsPath) {
-    console.warn(`Only found one of PROMETHEUS_HTTP_PORT / PROMETHEUS_METRICS_PATH. Check your environment.`);
+  } else if (httpServicePort || prometheusMetricsPath) {
+    console.warn(`Only found one of HTTP_SERVICE_PORT / PROMETHEUS_METRICS_PATH. Check your environment.`);
   }
 
   server.serve();
