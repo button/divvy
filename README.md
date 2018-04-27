@@ -212,8 +212,8 @@ Configuration is expressed as a sequence of *buckets*. Buckets have the followin
 * `operation`: Zero or more key-value pairs which must be found in the incoming `HIT` request.
   * The special value `*` may be used here to express, "key must be present, but any value can match".
   * Glob keys are supported in the interest of specifying limits across subpaths, such as `/v1/billing/*`.
-* `creditLimit`: The number of hits that are allowed in the quota period.
-* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds.
+* `creditLimit`: The number of hits that are allowed in the quota period. Must be >= 0.
+* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds. Must be > 0.
 
 Bucket order is signficant: Quota is determined for a `HIT` request by finding the first bucket where all key/value pairs required by the bucket's `operation` match the request. Additional key/value pairs in the request *may* be ignored.
 

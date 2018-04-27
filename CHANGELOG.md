@@ -1,5 +1,10 @@
 # Divvy Changelog
 
+## v1.2.0 (2018-04-27)
+
+* Protocol Documentation: Clarify the valid range of values for `creditLimit` and `resetSeconds`.
+* Validation: Moved validation of `resetSeconds` from rule evaluation time to configuration parse time, and added validation for `creditLimit`.
+
 ## v1.1.0 (2017-08-15)
 
 * Feature: Enable Prometheus metric scraping by exporting `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables.

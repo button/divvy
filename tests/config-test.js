@@ -89,6 +89,31 @@ describe('src/config', function () {
       }, /Unreachable rule/);
     });
 
+    it('with a rule containing an invalid creditLimit', function () {
+      const config = new Config();
+      config.addRule({ service: 'myservice', method: 'GET' }, 0, 60);
+      assert.throws(() => {
+        config.addRule({ service: 'myservice', method: 'POST' }, -1, 60);
+      }, /Invalid creditLimit/);
+      assert.throws(() => {
+        config.addRule({ service: 'myservice', method: 'PATCH' }, 'seven', 60);
+      }, /Invalid creditLimit/);
+    });
+
+    it('with a rule where resetSeconds < 1', function () {
+      const config = new Config();
+      config.addRule({ service: 'myservice', method: 'GET' }, 20, 1);
+      assert.throws(() => {
+        config.addRule({ service: 'myservice', method: 'POST' }, 70, 0);
+      }, /Invalid resetSeconds/);
+      assert.throws(() => {
+        config.addRule({ service: 'myservice', method: 'POST' }, 70, -20);
+      }, /Invalid resetSeconds/);
+      assert.throws(() => {
+        config.addRule({ service: 'myservice', method: 'POST' }, 10, 'fish');
+      }, /Invalid resetSeconds/);
+    });
+
     it('handles simple glob keys', function () {
       const config = new Config();
 
