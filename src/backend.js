@@ -38,10 +38,6 @@ class Backend {
       return Promise.reject(new Error('hit(): Backend not initialized.'));
     }
 
-    if (resetSeconds < 1) {
-      return Promise.reject(new Error('hit(): bad value for resetSeconds'));
-    }
-
     if (creditLimit <= 0) {
       return Promise.resolve({
         isAllowed: false,

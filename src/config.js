@@ -18,7 +18,6 @@ function isGlobValue(v) {
 }
 
 class Config {
-
   constructor() {
     this.rules = [];
   }
@@ -45,11 +44,14 @@ class Config {
     for (const rulegroupString of Object.keys(rawConfig)) {
       const rulegroupConfig = rawConfig[rulegroupString];
 
+      // These fields are required and will be validated within addRule
       const operation = Config.stringToOperation(rulegroupString);
-      const creditLimit = parseInt(rulegroupConfig.creditLimit, 10) || 0;
-      const resetSeconds = parseInt(rulegroupConfig.resetSeconds, 10) || 0;
+      const creditLimit = parseInt(rulegroupConfig.creditLimit, 10);
+      const resetSeconds = parseInt(rulegroupConfig.resetSeconds, 10);
+
+      // Optional fields.
       const actorField = rulegroupConfig.actorField || '';
-      const comment = rulegroupConfig.comment;
+      const comment = rulegroupConfig.comment || '';
 
       config.addRule(operation, creditLimit, resetSeconds, actorField, comment);
     }
@@ -82,9 +84,18 @@ class Config {
    */
   addRule(operation, creditLimit, resetSeconds, actorField, comment) {
     const foundRule = this.findRule(operation);
+
     if (foundRule !== null) {
       throw new Error(
         `Unreachable rule for operation=${operation}; masked by operation=${foundRule.operation}`);
+    }
+
+    if (isNaN(creditLimit) || creditLimit < 0) {
+      throw new Error(`Invalid creditLimit for operation=${operation} (${creditLimit})`);
+    }
+
+    if (isNaN(resetSeconds) || resetSeconds < 1) {
+      throw new Error(`Invalid resetSeconds for operation=${operation} (${resetSeconds})`);
     }
 
     const rule = {
