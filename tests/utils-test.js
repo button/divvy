@@ -150,4 +150,24 @@ describe('src/utils', function () {
       });
     });
   });
+
+  describe('#stringifyObjectValues', function () {
+    it('throws errors on non-object inputs', function () {
+      [1, 'a', ['foo'], function () {}].forEach(function (val) {
+        it(`throws for ${val}`, function () {
+          assert.throws(() => Utils.stringifyObjectValues(val));
+        });
+      });
+    });
+
+    it('returns a copy of input with stringified values', function () {
+      assert.deepEqual(
+        { foo: '1', bar: 'a' },
+        Utils.stringifyObjectValues({ foo: 1, bar: 'a' }));
+
+      assert.deepEqual(
+        { obj: JSON.stringify({ key1: 'val1' }) },
+        Utils.stringifyObjectValues({ obj: { key1: 'val1' } }));
+    });
+  });
 });

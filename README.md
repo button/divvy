@@ -224,7 +224,7 @@ The following optional fields are also supported:
 
 ### File format
 
-Config files are written in [INI file syntax](https://en.wikipedia.org/wiki/INI_file), although we may add other formats later. See `examples/example-config.ini` for an example.
+Config files are written in JSON or [INI file syntax](https://en.wikipedia.org/wiki/INI_file). We may add other formats later. See `examples/` for examples.
 
 ### Actors and multi-tenancy
 
@@ -232,6 +232,21 @@ By default, each bucket will be tracked and decremented as a single counter in t
 
 If a bucket configuration specifies `actorField`, Divvy will track a separate counter for every distinct value of that field in `HIT` requests. Here is a short example:
 
+##### JSON
+```json
+{
+  "operation": {
+    "method": "GET",
+    "ip": "*"
+  },
+  "creditLimit": 100,
+  "resetSeconds": 60,
+  "actorField": "ip",
+  "comment":  "100 requests/second per IP"
+}
+```
+
+##### INI
 ```ini
 [method=GET ip=*]
 creditLimit = 100
