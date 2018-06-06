@@ -134,6 +134,22 @@ const Utils = {
     }
     throw new Errors.UnknownCommandError(`Unrecognized command: ${command}`);
   },
+
+  stringifyObjectValues: (obj) => {
+    if (obj.constructor.name !== 'Object') {
+      throw new Error(`Expected object: got ${typeof obj}`);
+    }
+    const ret = {};
+    Object.keys(obj).forEach((key) => {
+      const val = obj[key];
+      if (typeof val === 'string') {
+        ret[key] = val;
+      } else {
+        ret[key] = JSON.stringify(val);
+      }
+    });
+    return ret;
+  },
 };
 
 module.exports = Utils;

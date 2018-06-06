@@ -2,6 +2,10 @@
 
 ## v1.2.0 (2018-04-27)
 
+* Feature: Add support for JSON-based configuration.
+
+## v1.2.0 (2018-04-27)
+
 * Protocol Documentation: Clarify the valid range of values for `creditLimit` and `resetSeconds`.
 * Validation: Moved validation of `resetSeconds` from rule evaluation time to configuration parse time, and added validation for `creditLimit`.
 

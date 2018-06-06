@@ -1,6 +1,9 @@
 const debug = require('debug')('divvy');
 const fs = require('fs');
 const ini = require('ini');
+const path = require('path');
+
+const Utils = require('./utils');
 
 /**
  * In support of globbing, we turn the operation value into
@@ -32,6 +35,38 @@ class Config {
     ruleValue = ruleValue.replace(REGEX_ESCAPE_CHARACTERS, '\\$&');
     ruleValue = ruleValue.replace('*', '.*');
     return new RegExp(`^${ruleValue}`);
+  }
+
+  static fromJsonFile(filename) {
+    const rawConfig = JSON.parse(fs.readFileSync(filename, 'utf-8'));
+    const config = new Config();
+
+    // Add default after other rules since it has lowest precedence
+    if (typeof rawConfig.default === 'object') {
+      rawConfig.overrides.push(rawConfig.default);
+    }
+
+    (rawConfig.overrides || []).forEach(function (rule) {
+      config.addRule(
+        Utils.stringifyObjectValues(rule.operation),
+        rule.creditLimit,
+        rule.resetSeconds,
+        rule.actorField,
+        rule.comment);
+    });
+
+    return config;
+  }
+
+  static fromFile(filename) {
+    switch (path.extname(filename)) {
+      case '.json':
+        return this.fromJsonFile(filename);
+      case '.ini':
+        return this.fromIniFile(filename);
+      default:
+        throw new Error(`Unrecognized format for config file: ${filename}`);
+    }
   }
 
   /** Creates a new instance from an `ini` file.  */
@@ -94,7 +129,7 @@ class Config {
       throw new Error(`Invalid creditLimit for operation=${operation} (${creditLimit})`);
     }
 
-    if (isNaN(resetSeconds) || resetSeconds < 1) {
+    if (creditLimit > 0 && (isNaN(resetSeconds) || resetSeconds < 1)) {
       throw new Error(`Invalid resetSeconds for operation=${operation} (${resetSeconds})`);
     }
 
@@ -136,6 +171,20 @@ class Config {
     }
 
     return null;
+  }
+
+  toJson(pretty) {
+    const data = {
+      overrides: [],
+    };
+    for (const rule of this.rules) {
+      if (Object.keys(rule.operation).length === 0) {
+        data.default = rule;
+      } else {
+        data.overrides.push(rule);
+      }
+    }
+    return JSON.stringify(data, null, pretty && 2);
   }
 }
 
