@@ -1,6 +1,6 @@
 # Divvy Changelog
 
-## v1.2.0 (2018-04-27)
+## v1.3.0 (2018-06-06)
 
 * Feature: Add support for JSON-based configuration.
 
