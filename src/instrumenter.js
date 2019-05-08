@@ -57,7 +57,7 @@ class Instrumenter {
     this.hitCounter = new PrometheusClient.Counter({
       name: 'divvy_hits_total',
       help: 'Counter of total HITs to Divvy.',
-      labelNames: ['status', 'type'],
+      labelNames: ['status', 'type', 'rule_label'],
     });
 
     this.errorCounter = new PrometheusClient.Counter({
@@ -92,11 +92,12 @@ class Instrumenter {
    * Record a HIT operation.
    * @param {string} status The status of the hit, either "accepted" or "rejected".
    * @param {string} type   The match type, either "rule", "default", or "none".
+   * @param {string} name   The matching rule string name, or null.
    */
-  countHit(status, type) {
+  countHit(status, type, name) {
     this.statsd.increment(`hit.${status}`);
     this.statsd.increment(`hit.${status}.${type}`);
-    this.hitCounter.labels(status, type).inc();
+    this.hitCounter.labels(status, type, name || '').inc();
   }
 
   /**

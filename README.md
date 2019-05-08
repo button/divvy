@@ -25,7 +25,7 @@ Divvy is a quota / rate limiter service, implemented in NodeJS and backed by Red
 With Divvy you can express policies like:
 
 * Limit `GET /printer/supplies` to 100 requests per minute globally.
-* Limit `POST /printer/print` to 
+* Limit `POST /printer/print` to
     * 60 requests/minute for authorized users.
     * 5 requests/minute for everyone else, by IP address.
 * No limit for `GET /printer/status`
@@ -101,7 +101,7 @@ Let's look at what each field means:
 * **Status**: `OK`: The server understood the command, yay!
 * **Allowed**: `true`: We have enough quota for this operation.
 * **Credit remaining**: `999`: We have a bunch of quota left, too.
-* **Next reset (seconds)**: `60`: Our quota will be set back to `1000` in 60 seconds. 
+* **Next reset (seconds)**: `60`: Our quota will be set back to `1000` in 60 seconds.
 
 Let's try a few more and watch our quota decrease:
 
@@ -219,6 +219,7 @@ Bucket order is signficant: Quota is determined for a `HIT` request by finding t
 
 The following optional fields are also supported:
 
+* `label`: A short, slug-like name for the rule. If set, Prometheus metrics for hits matching the rule will be labeled with `rule_label` as this value.
 * `comment`: A diagnostic comment, printed when running server with `DEBUG=divvy`.
 * `actorField`: Described in _"Actors and multi-tenancy"_.
 

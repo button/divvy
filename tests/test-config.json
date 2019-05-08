@@ -43,6 +43,7 @@
       "creditLimit": 5,
       "resetSeconds": 60,
       "actorField": "ip",
+      "label": "post-by-ip",
       "comment": "5 rpm for any POST, by ip"
     }
   ],

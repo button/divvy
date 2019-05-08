@@ -62,8 +62,8 @@ describe('src/instrumenter', function () {
     sinon.assert.notCalled(this.instrumenter.statsd.increment);
     assert.deepEqual(this.instrumenter.hitCounter.hashMap, {});
 
-    this.instrumenter.countHit('accepted', 'rule');
-    this.instrumenter.countHit('accepted', 'rule');
+    this.instrumenter.countHit('accepted', 'rule', 'a');
+    this.instrumenter.countHit('accepted', 'rule', 'b');
     this.instrumenter.countHit('accepted', 'none');
     this.instrumenter.countHit('accepted', 'default');
     this.instrumenter.countHit('rejected', 'none');
@@ -76,9 +76,15 @@ describe('src/instrumenter', function () {
     sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.accepted.default');
     sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.rejected.none');
 
-    assert.equal(this.instrumenter.hitCounter.hashMap['status:accepted,type:rule'].value, 2);
-    assert.equal(this.instrumenter.hitCounter.hashMap['status:accepted,type:none'].value, 1);
-    assert.equal(this.instrumenter.hitCounter.hashMap['status:accepted,type:default'].value, 1);
-    assert.equal(this.instrumenter.hitCounter.hashMap['status:rejected,type:none'].value, 1);
+    assert.equal(this.instrumenter.hitCounter.hashMap[
+      'rule_label:a,status:accepted,type:rule'].value, 1);
+    assert.equal(this.instrumenter.hitCounter.hashMap[
+      'rule_label:b,status:accepted,type:rule'].value, 1);
+    assert.equal(this.instrumenter.hitCounter.hashMap[
+      'rule_label:,status:accepted,type:none'].value, 1);
+    assert.equal(
+      this.instrumenter.hitCounter.hashMap['rule_label:,status:accepted,type:default'].value, 1);
+    assert.equal(this.instrumenter.hitCounter.hashMap[
+      'rule_label:,status:rejected,type:none'].value, 1);
   });
 });
