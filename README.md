@@ -219,7 +219,7 @@ Bucket order is signficant: Quota is determined for a `HIT` request by finding t
 
 The following optional fields are also supported:
 
-* `label`: A short, slug-like name for the rule. If set, Prometheus metrics for hits matching the rule will be labeled with `rule_label` as this value.
+* `label`: A short, slug-like name for the rule. If set, Prometheus metrics for hits matching the rule will be labeled with `rule_label` as this value. Labels have no effect on statsd metrics.
 * `comment`: A diagnostic comment, printed when running server with `DEBUG=divvy`.
 * `actorField`: Described in _"Actors and multi-tenancy"_.
 

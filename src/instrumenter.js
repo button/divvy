@@ -92,12 +92,12 @@ class Instrumenter {
    * Record a HIT operation.
    * @param {string} status The status of the hit, either "accepted" or "rejected".
    * @param {string} type   The match type, either "rule", "default", or "none".
-   * @param {string} name   The matching rule string name, or null.
+   * @param {string} label   The matching rule label, or null.
    */
-  countHit(status, type, name) {
+  countHit(status, type, label) {
     this.statsd.increment(`hit.${status}`);
     this.statsd.increment(`hit.${status}.${type}`);
-    this.hitCounter.labels(status, type, name || '').inc();
+    this.hitCounter.labels(status, type, label || '').inc();
   }
 
   /**

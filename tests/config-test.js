@@ -48,7 +48,7 @@ describe('src/config', function () {
           creditLimit: 10,
           resetSeconds: 60,
           actorField: 'ip',
-          label: null,
+          label: 'get-ping-by-ip',
           comment: '10 rpm for /ping for non-authenticated users, by ip',
         }, rule);
 
