@@ -101,7 +101,7 @@ describe('src/server', function () {
         });
 
         sinon.assert.callCount(instrumenter.countHit, 1);
-        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule');
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule', '');
 
         sinon.assert.callCount(instrumenter.timeHit, 1);
         // Since we've installed sinon's fake timers we can safely compare to new Date()
@@ -140,7 +140,7 @@ describe('src/server', function () {
         });
 
         sinon.assert.callCount(instrumenter.countHit, 1);
-        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule');
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule', 'get-ping-by-ip');
 
         sinon.assert.callCount(instrumenter.timeHit, 1);
         // Since we've installed sinon's fake timers we can safely compare to new Date()
@@ -175,7 +175,7 @@ describe('src/server', function () {
         });
 
         sinon.assert.callCount(instrumenter.countHit, 1);
-        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule');
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'rule', '');
 
         sinon.assert.callCount(instrumenter.timeHit, 1);
         // Since we've installed sinon's fake timers we can safely compare to new Date()

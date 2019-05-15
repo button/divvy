@@ -29,6 +29,7 @@ describe('src/config', function () {
           creditLimit: 100,
           resetSeconds: 60,
           actorField: 'ip',
+          label: null,
           comment: '100 rpm for /ping for authenticated users, by ip',
         }, rule);
 
@@ -47,6 +48,7 @@ describe('src/config', function () {
           creditLimit: 10,
           resetSeconds: 60,
           actorField: 'ip',
+          label: 'get-ping-by-ip',
           comment: '10 rpm for /ping for non-authenticated users, by ip',
         }, rule);
 
@@ -64,6 +66,7 @@ describe('src/config', function () {
           creditLimit: 5,
           resetSeconds: 60,
           actorField: 'ip',
+          label: 'post-by-ip',
           comment: '5 rpm for any POST, by ip',
         }, rule);
 
@@ -75,6 +78,7 @@ describe('src/config', function () {
           creditLimit: 1,
           resetSeconds: 60,
           actorField: '',
+          label: null,
           comment: 'Default quota',
         }, rule);
       });
@@ -102,6 +106,22 @@ describe('src/config', function () {
         }, /Invalid creditLimit/);
       });
 
+      it('with a rule containing an invalid label', function () {
+        const config = new Config();
+        config.addRule({ service: 'myservice', method: 'GET' }, 0, 60, null, 'nice-rule');
+        assert.throws(() => {
+          config.addRule({ service: 'myservice', method: 'POST' }, 0, 60, null, 'this is fine');
+        }, /Invalid rule label "this is fine"/);
+      });
+
+      it('with a rule containing a duplicate label', function () {
+        const config = new Config();
+        config.addRule({ service: 'myservice', method: 'GET' }, 0, 60, null, 'nice-rule');
+        assert.throws(() => {
+          config.addRule({ service: 'myservice', method: 'POST' }, 0, 60, null, 'nice-rule');
+        }, /A rule with label "nice-rule" already exists/);
+      });
+
       it('with a rule where resetSeconds < 1', function () {
         const config = new Config();
         config.addRule({ service: 'myservice', method: 'GET' }, 20, 1);
@@ -119,8 +139,8 @@ describe('src/config', function () {
       it('handles simple glob keys', function () {
         const config = new Config();
 
-        config.addRule({ service: 'my*', method: 'GET' }, 100, 60, 'actor', 'a');
-        config.addRule({ service: 'your*', method: 'GET' }, 200, 40, 'jim', 'b');
+        config.addRule({ service: 'my*', method: 'GET' }, 100, 60, 'actor', 'rule-a', 'a');
+        config.addRule({ service: 'your*', method: 'GET' }, 200, 40, 'jim', 'rule-b', 'b');
 
         const rule = config.findRule({ service: 'myget', method: 'GET' });
         assert.deepEqual({
@@ -131,6 +151,7 @@ describe('src/config', function () {
           creditLimit: 100,
           resetSeconds: 60,
           actorField: 'actor',
+          label: 'rule-a',
           comment: 'a',
         }, rule);
 
@@ -143,6 +164,7 @@ describe('src/config', function () {
           creditLimit: 200,
           resetSeconds: 40,
           actorField: 'jim',
+          label: 'rule-b',
           comment: 'b',
         }, other);
       });
@@ -164,6 +186,7 @@ describe('src/config', function () {
           creditLimit: 1,
           resetSeconds: 60,
           actorField: 'ip',
+          label: null,
           comment: '1 rpm for POST /account*, by ip',
         }, rule);
 
@@ -181,6 +204,7 @@ describe('src/config', function () {
           creditLimit: 5,
           resetSeconds: 60,
           actorField: 'ip',
+          label: 'post-by-ip',
           comment: '5 rpm for any POST, by ip',
         }, rule);
       });

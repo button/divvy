@@ -133,7 +133,8 @@ class Server extends EventEmitter {
       this.instrumenter.timeHit(startDate);
       const result = status.isAllowed ? 'accepted' : 'rejected';
       const matchType = Server.getMatchType(rule);
-      this.instrumenter.countHit(result, matchType);
+      const ruleLabel = (rule && rule.label) ? rule.label : '';
+      this.instrumenter.countHit(result, matchType, ruleLabel);
     }).catch((err) => {
       this.sendError(conn, `Server error: ${err}`);
     });

@@ -16,6 +16,11 @@ const Utils = require('./utils');
  */
 const REGEX_ESCAPE_CHARACTERS = /[-[\]{}()+?.,\\^$|#]/g;
 
+/**
+ * Allowed pattern for the "label" field of a rule.
+ */
+const RULE_LABEL_REGEX = /^[a-zA-Z0-9_-]{1,255}$/;
+
 function isGlobValue(v) {
   return v.endsWith('*');
 }
@@ -23,6 +28,7 @@ function isGlobValue(v) {
 class Config {
   constructor() {
     this.rules = [];
+    this.ruleLabels = new Set();
   }
 
   /**
@@ -52,6 +58,7 @@ class Config {
         rule.creditLimit,
         rule.resetSeconds,
         rule.actorField,
+        rule.label,
         rule.comment);
     });
 
@@ -87,8 +94,9 @@ class Config {
       // Optional fields.
       const actorField = rulegroupConfig.actorField || '';
       const comment = rulegroupConfig.comment || '';
+      const label = rulegroupConfig.label || '';
 
-      config.addRule(operation, creditLimit, resetSeconds, actorField, comment);
+      config.addRule(operation, creditLimit, resetSeconds, actorField, label, comment);
     }
 
     return config;
@@ -115,9 +123,10 @@ class Config {
    * @param {number} creditLimit  Number of operations to permit every `resetSeconds`
    * @param {number} resetSeconds Credit renewal interval.
    * @param {string} actorField   Name of the actor field (optional).
+   * @param {string} label        Optional name for this rule.
    * @param {string} comment      Optional diagnostic name for this rule.
    */
-  addRule(operation, creditLimit, resetSeconds, actorField, comment) {
+  addRule(operation, creditLimit, resetSeconds, actorField, label, comment) {
     const foundRule = this.findRule(operation);
 
     if (foundRule !== null) {
@@ -133,11 +142,21 @@ class Config {
       throw new Error(`Invalid resetSeconds for operation=${operation} (${resetSeconds})`);
     }
 
+    if (label) {
+      if (!RULE_LABEL_REGEX.test(label)) {
+        throw new Error(`Invalid rule label "${label}"; must match ${RULE_LABEL_REGEX}`);
+      } else if (this.ruleLabels.has(label)) {
+        throw new Error(`A rule with label "${label}" already exists; labels must be unique.`);
+      }
+      this.ruleLabels.add(label);
+    }
+
     const rule = {
       operation,
       creditLimit,
       resetSeconds,
       actorField,
+      label: label || null,
       comment: comment || null,
     };
     this.rules.push(rule);

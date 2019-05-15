@@ -1,5 +1,9 @@
 # Divvy Changelog
 
+## v1.4.0 (2019-05-08)
+
+* Feature: Support named rules.
+
 ## v1.3.0 (2018-06-06)
 
 * Feature: Add support for JSON-based configuration.
