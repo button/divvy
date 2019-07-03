@@ -193,7 +193,7 @@ describe('src/config', function () {
         rule = config.findRule({
           method: 'POST',
           path: '/accounts/logout',
-          isAuthenticated: 'nope',  // must cause a different rule to match
+          isAuthenticated: 'nope', // must cause a different rule to match
           ip: '1.2.3.4',
         });
         assert.deepEqual({

@@ -1,7 +1,7 @@
 const http = require('http');
 const PrometheusClient = require('prom-client');
 
-const invariant = require('./utils').invariant;
+const { invariant } = require('./utils');
 
 class WebServer {
   /**

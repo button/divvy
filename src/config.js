@@ -59,7 +59,8 @@ class Config {
         rule.resetSeconds,
         rule.actorField,
         rule.label,
-        rule.comment);
+        rule.comment
+      );
     });
 
     return config;
@@ -131,7 +132,8 @@ class Config {
 
     if (foundRule !== null) {
       throw new Error(
-        `Unreachable rule for operation=${operation}; masked by operation=${foundRule.operation}`);
+        `Unreachable rule for operation=${operation}; masked by operation=${foundRule.operation}`
+      );
     }
 
     if (isNaN(creditLimit) || creditLimit < 0) {
