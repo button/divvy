@@ -163,11 +163,13 @@ describe('src/utils', function () {
     it('returns a copy of input with stringified values', function () {
       assert.deepEqual(
         { foo: '1', bar: 'a' },
-        Utils.stringifyObjectValues({ foo: 1, bar: 'a' }));
+        Utils.stringifyObjectValues({ foo: 1, bar: 'a' })
+      );
 
       assert.deepEqual(
         { obj: JSON.stringify({ key1: 'val1' }) },
-        Utils.stringifyObjectValues({ obj: { key1: 'val1' } }));
+        Utils.stringifyObjectValues({ obj: { key1: 'val1' } })
+      );
     });
   });
 });

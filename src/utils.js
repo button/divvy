@@ -55,9 +55,9 @@ const Utils = {
       throw new Errors.MalformedMessageError('Unexpected end of input string.');
     }
 
-    const itMatches = charOrRegexp instanceof RegExp ?
-        (charOrRegexp.test(inputString[0])) :
-        (charOrRegexp === inputString[0]);
+    const itMatches = charOrRegexp instanceof RegExp
+      ? (charOrRegexp.test(inputString[0]))
+      : (charOrRegexp === inputString[0]);
 
     if (!itMatches) {
       // Shortcut for friendly messages.
@@ -91,7 +91,7 @@ const Utils = {
       s = Utils.consumeChar(parsed.remain, '=');
 
       parsed = Utils.readString(s);
-      const value = parsed.value;
+      const { value } = parsed;
       s = parsed.remain;
 
       command[key] = value;

@@ -1,5 +1,9 @@
 # Divvy Changelog
 
+## v1.4.1 (2019-07-03)
+
+* Bump dependencies.
+
 ## v1.4.0 (2019-05-08)
 
 * Feature: Support named rules.

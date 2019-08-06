@@ -5,7 +5,7 @@ const net = require('net');
 const carrier = require('carrier');
 const Errors = require('./errors');
 const Utils = require('./utils');
-const invariant = Utils.invariant;
+const { invariant } = Utils;
 
 const DEFAULT_PORT = 8321;
 
@@ -117,14 +117,13 @@ class Server extends EventEmitter {
         nextResetSeconds: -1,
       });
     } else {
-      const actor = rule.actorField ?
-        (operation[rule.actorField] || '') : '';
+      const actor = rule.actorField
+        ? (operation[rule.actorField] || '') : '';
 
       oper = this.backend.hit(rule.operation,
         actor,
         rule.creditLimit,
-        rule.resetSeconds
-      );
+        rule.resetSeconds);
     }
 
     return oper.then((status) => {
@@ -165,7 +164,6 @@ class Server extends EventEmitter {
     const numKeys = Object.keys(rule).length;
     return numKeys > 0 ? 'rule' : 'default';
   }
-
 }
 
 module.exports = Server;

@@ -43,7 +43,7 @@ describe('src/instrumenter', function () {
   });
 
   it('records the duration of a HIT', function () {
-     // Grab a start date and move forward a second so we have some imaginary duration
+    // Grab a start date and move forward a second so we have some imaginary duration
     const start = new Date();
     this.clock.tick(1000);
 
@@ -83,7 +83,8 @@ describe('src/instrumenter', function () {
     assert.equal(this.instrumenter.hitCounter.hashMap[
       'rule_label:,status:accepted,type:none'].value, 1);
     assert.equal(
-      this.instrumenter.hitCounter.hashMap['rule_label:,status:accepted,type:default'].value, 1);
+      this.instrumenter.hitCounter.hashMap['rule_label:,status:accepted,type:default'].value, 1
+    );
     assert.equal(this.instrumenter.hitCounter.hashMap[
       'rule_label:,status:rejected,type:none'].value, 1);
   });

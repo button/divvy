@@ -10,7 +10,6 @@ const path = require('path');
 const SCRIPT_FILE = path.resolve(__dirname, '../scripts/pipe.lua');
 
 class Backend {
-
   /**
    * Constructor.
    *
@@ -61,16 +60,17 @@ class Backend {
     debug(`redis: evalsha ${this.scriptSha} 1 ${keyName} ${resetSeconds} ${initialValue}`);
 
     return this.redis.evalshaAsync(
-        this.scriptSha, 1, keyName, resetSeconds, initialValue).then((result) => {
-          if (!result || result.length !== 3) {
-            throw new Error(`Unexpected result from redis: "${result}"`);
-          }
-          return {
-            isAllowed: !!result[0],
-            currentCredit: result[1],
-            nextResetSeconds: result[2],
-          };
-        });
+      this.scriptSha, 1, keyName, resetSeconds, initialValue
+    ).then((result) => {
+      if (!result || result.length !== 3) {
+        throw new Error(`Unexpected result from redis: "${result}"`);
+      }
+      return {
+        isAllowed: !!result[0],
+        currentCredit: result[1],
+        nextResetSeconds: result[2],
+      };
+    });
   }
 
   initialize() {
@@ -79,7 +79,6 @@ class Backend {
       this.scriptSha = sha;
     });
   }
-
 }
 
 module.exports = Backend;
