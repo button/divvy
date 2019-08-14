@@ -1,6 +1,6 @@
 {
   "name": "@button/divvy",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Redis-backed rate limit service.",
   "main": "index.js",
   "directories": {
