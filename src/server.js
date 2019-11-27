@@ -131,9 +131,8 @@ class Server extends EventEmitter {
           ? Constants.METRICS_STATUS_ACCEPTED : Constants.METRICS_STATUS_REJECTED;
       }
 
-      const matchType = Server.getMatchType(rule);
       const ruleLabel = (rule && rule.label) ? rule.label : '';
-      this.instrumenter.countHit(statusForInstrumenter, matchType, ruleLabel);
+      this.instrumenter.countHit(statusForInstrumenter, ruleLabel);
 
       lastStatus = status;
 
@@ -144,7 +143,10 @@ class Server extends EventEmitter {
 
     if (lastStatus === null) {
       // We matched no "stop" or "continue" rules; default deny.
-      this.instrumenter.countHit(Constants.METRICS_STATUS_REJECTED, 'none', Constants.METRICS_LABEL_DEFAULT);
+      this.instrumenter.countHit(
+        Constants.METRICS_STATUS_REJECTED,
+        Constants.METRICS_LABEL_DEFAULT
+      );
       return {
         isAllowed: false,
         currentCredit: 0,

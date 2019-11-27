@@ -361,10 +361,14 @@ The server can be configured with several environment variables.
 
 ## Statistics
 
+### Statsd
+
 If `STATSD_HOST` and `STATSD_PORT` are given, the server will report certain metrics to it:
 * Counters
   * `<prefix>.hit.accepted`: Count `HIT` operations where quota was available.
-  * `<prefix>.hit.rejected`: Count `HIT` operations where quota was not availabled.
+    * `<prefix>.hit.accepted.<label>`: Additional counter incremented when rule has a label.
+  * `<prefix>.hit.rejected`: Count `HIT` operations where quota was not available.
+    * `<prefix>.hit.rejected.<label>`: Additional counter incremented when rule has a label.
   * `<prefix>.error.unknown-command`: Count of `ERR unknown-command`.
   * `<prefix>.error.unknown`: Count of `ERR unknown`.
 * Timers
@@ -372,14 +376,17 @@ If `STATSD_HOST` and `STATSD_PORT` are given, the server will report certain met
 * Gauges
   * `<prefix>.connections`: Concurrent connections.
 
-Alternatively if you are using Prometheus, you may specify the `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables to collect and metrics and allow your Prometheus scraper to query them. The following metrics will be collected:
+### Prometheus
+
+If you are using Prometheus, you may specify the `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables to public metrics and allow your Prometheus scraper to query them. The following metrics will be published:
 
 * `divvy_tcp_connections_total`: Gauge of current open TCP connections.
 * `divvy_hit_duration_seconds`: Histogram of processing duration for HITs.
-* `divvy_hits_total`: Counter of all HIT operations.
-  * Labels: `status` (either `accepted` or `rejected`), `type` (either `none`, `rule`, or `default`).
-* `divvy_errors_total`: Counter of divvy errors.
-  * Labels: `code` (the type of error, such as `unknown-command`).
+* `divvy_hits_total`: Counter of all HIT operations. Labeled by:
+  * `status`: either `accepted` or `rejected` for normal rules; either `canary-accepted` or `canary-rejected` for rules with `"canary"` match policy.
+  * `rule_label`: the rule's `label` field, if specified. The value `default-reject` will be used for requests that match no rules.
+* `divvy_errors_total`: Counter of divvy errors. Labeled by:
+  * `code`: the type of error, such as `unknown-command`.
 
 ## Client Libraries
 
@@ -389,4 +396,4 @@ Alternatively if you are using Prometheus, you may specify the `HTTP_SERVICE_POR
 
 Licensed under the MIT license. See `LICENSE.txt` for full terms.
 
-Copyright 2016 Button, Inc.
+Copyright 2016-2019 Button, Inc.

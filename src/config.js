@@ -161,6 +161,8 @@ class Config {
         throw new Error(`Invalid rule label "${label}"; must match ${RULE_LABEL_REGEX}`);
       } else if (this.ruleLabels.has(label)) {
         throw new Error(`A rule with label "${label}" already exists; labels must be unique.`);
+      } else if (label === Constants.METRICS_LABEL_DEFAULT) {
+        throw new Error(`The label ${label} is reserved and may not be used in configuration.`);
       }
       this.ruleLabels.add(label);
     }

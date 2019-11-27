@@ -62,30 +62,29 @@ describe('src/instrumenter', function () {
     sinon.assert.notCalled(this.instrumenter.statsd.increment);
     assert.deepEqual(this.instrumenter.hitCounter.hashMap, {});
 
-    this.instrumenter.countHit('accepted', 'rule', 'a');
-    this.instrumenter.countHit('accepted', 'rule', 'b');
-    this.instrumenter.countHit('accepted', 'none');
-    this.instrumenter.countHit('accepted', 'default');
-    this.instrumenter.countHit('rejected', 'none');
+    this.instrumenter.countHit('accepted', 'a');
+    this.instrumenter.countHit('accepted', 'b');
+    this.instrumenter.countHit('accepted');
+    this.instrumenter.countHit('accepted');
+    this.instrumenter.countHit('rejected', 'bloop');
 
-    sinon.assert.callCount(this.instrumenter.statsd.increment, 10);
+    sinon.assert.callCount(this.instrumenter.statsd.increment, 8);
     sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.accepted');
+    sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.accepted.a');
+    sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.accepted.b');
     sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.rejected');
-    sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.accepted.rule');
-    sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.accepted.none');
-    sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.accepted.default');
-    sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.rejected.none');
+    sinon.assert.calledWith(this.instrumenter.statsd.increment, 'hit.rejected.bloop');
 
     assert.equal(this.instrumenter.hitCounter.hashMap[
-      'rule_label:a,status:accepted,type:rule'].value, 1);
+      'rule_label:a,status:accepted'].value, 1);
     assert.equal(this.instrumenter.hitCounter.hashMap[
-      'rule_label:b,status:accepted,type:rule'].value, 1);
+      'rule_label:b,status:accepted'].value, 1);
     assert.equal(this.instrumenter.hitCounter.hashMap[
-      'rule_label:,status:accepted,type:none'].value, 1);
+      'rule_label:,status:accepted'].value, 2);
     assert.equal(
-      this.instrumenter.hitCounter.hashMap['rule_label:,status:accepted,type:default'].value, 1
+      this.instrumenter.hitCounter.hashMap['rule_label:,status:accepted'].value, 2
     );
     assert.equal(this.instrumenter.hitCounter.hashMap[
-      'rule_label:,status:rejected,type:none'].value, 1);
+      'rule_label:bloop,status:rejected'].value, 1);
   });
 });

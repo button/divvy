@@ -4,6 +4,9 @@
 
 * Bump dependencies.
 * New feature: Canarying rules via configurable `matchPolicy`.
+* Instrumentation: Match "type" is no longer included statsd or prometheus metrics. Instead, when a request matches no rules, a rejection is recorded with label `default-reject`.
+* Instrumentation: Statsd metrics will be recorded with the label name, when present.
+* The label name `default-reject` is reserved and may not be used in config files.
 
 ## v1.4.2 (2019-07-08)
 
