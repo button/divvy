@@ -111,6 +111,10 @@ class Server extends EventEmitter {
    * @param {*} operation
    */
   async evaluateRules(rules, operation) {
+    if (!rules.length) {
+      throw new Error('Bug: Should always have at least one rule to evaluate.');
+    }
+
     let lastStatus = null;
     for (const rule of rules) {
       debug('hit: operation=%j rule=%j%s', operation, rule, rule.comment);
@@ -139,19 +143,6 @@ class Server extends EventEmitter {
       if (rule.matchPolicy === Constants.MATCH_POLICY_STOP) {
         break;
       }
-    }
-
-    if (lastStatus === null) {
-      // We matched no "stop" or "continue" rules; default deny.
-      this.instrumenter.countHit(
-        Constants.METRICS_STATUS_REJECTED,
-        Constants.METRICS_LABEL_DEFAULT
-      );
-      return {
-        isAllowed: false,
-        currentCredit: 0,
-        nextResetSeconds: -1,
-      };
     }
 
     return lastStatus;

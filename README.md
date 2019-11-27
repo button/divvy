@@ -227,10 +227,8 @@ Configuration is expressed as a sequence of *buckets*. Buckets have the followin
 * `operation`: Zero or more key-value pairs which must be found in the incoming `HIT` request.
   * The special value `*` may be used here to express, "key must be present, but any value can match".
   * Glob keys are supported in the interest of specifying limits across subpaths, such as `/v1/billing/*`.
-* `creditLimit`: The number of hits that are allowed in the quota period. Must be >= 0.
-* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds. Must be > 0.
-
-Bucket order is signficant: Quota is determined for a `HIT` request by finding the first bucket where all key/value pairs required by the bucket's `operation` match the request. Additional key/value pairs in the request *may* be ignored.
+* `creditLimit`: The number of hits that are allowed in the quota period, typically a positive number. A value of zero will cause matching requests to always be denied (see _"Always allowing or denying"_).
+* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds, typically a positive number. A value of zero has special meaning (see _"Always allowing or denying"_).
 
 The following optional fields are also supported:
 
@@ -238,6 +236,37 @@ The following optional fields are also supported:
 * `comment`: A diagnostic comment, printed when running server with `DEBUG=divvy`.
 * `actorField`: Described in _"Actors and multi-tenancy"_.
 * `matchPolicy`: Either `"stop"` (the default), or `"canary"`. See _"Advanced usage"_ for details on canarying rules.
+
+### Rule order
+
+Bucket order is signficant: Quota is determined for a `HIT` request by finding the first bucket where all key/value pairs required by the bucket's `operation` match the request. Additional key/value pairs in the request *may* be ignored.
+
+### Always allowing or denying
+
+Zero values have special semantic meaning:
+
+* **Always allow:** When `resetSeconds` is `0` and `creditLimit` is a positive number, matching requests are _always allowed_; no counters are touched on the backend.
+* **Always deny:** When `creditLimit` is `0`, matching requests are _never allowed_; no counters are touched on the backend.
+
+### Default rule
+
+All configuration files _must_ define a final, default rule, which will be matched when no other rules match.
+
+Example default rules:
+
+```ini
+[default]
+creditLimit = 0
+resetSeconds = 0
+comment = 'Default deny!'
+```
+
+```ini
+[default]
+creditLimit = 1
+resetSeconds = 0
+comment = 'Default accept!'
+```
 
 ### File format
 

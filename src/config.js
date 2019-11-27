@@ -65,6 +65,7 @@ class Config {
       });
     });
 
+    config.validate();
     return config;
   }
 
@@ -103,6 +104,7 @@ class Config {
       });
     }
 
+    config.validate();
     return config;
   }
 
@@ -161,8 +163,6 @@ class Config {
         throw new Error(`Invalid rule label "${label}"; must match ${RULE_LABEL_REGEX}`);
       } else if (this.ruleLabels.has(label)) {
         throw new Error(`A rule with label "${label}" already exists; labels must be unique.`);
-      } else if (label === Constants.METRICS_LABEL_DEFAULT) {
-        throw new Error(`The label ${label} is reserved and may not be used in configuration.`);
       }
       this.ruleLabels.add(label);
     }
@@ -192,19 +192,32 @@ class Config {
   }
 
   /**
+   * Validate that this is a valid Config instance.
+   */
+  validate() {
+    if (!this.rules.length) {
+      throw new Error('Config does not define any rules.');
+    }
+    const lastRule = this.rules[this.rules.length - 1];
+    if (Object.keys(lastRule.operation).length !== 0) {
+      throw new Error('Config does not define a default rule.');
+    }
+  }
+
+  /**
    * Finds all rules matching this operation and returns them as an array.
    *
-   * In typical usage, the result will either be length 1 (the request
-   * matched a rule with matchPolicy "stop"), or zero (the request did not
-   * match any rule).
+   * In typical usage, the result will be length 1 (the request
+   * matched a rule with matchPolicy "stop").
    *
-   * In more advanced usages, "canary" may be returned.
+   * In more advanced usages, additional "canary" rules may be returned
+   * ahead of a final "stop" rule.
    */
   findRules(operation) {
     const result = [];
     for (const rule of this.rules) {
       if (!rule.matchPolicy) {
-        throw new Error('Bug: Rule does define a match policy.');
+        throw new Error('Bug: Rule does not define a match policy.');
       }
 
       let match = true;

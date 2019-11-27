@@ -39,10 +39,20 @@ class Backend {
     }
 
     if (creditLimit <= 0) {
+      // Always deny.
       return Promise.resolve({
         isAllowed: false,
         currentCredit: 0,
         nextResetSeconds: -1,
+      });
+    }
+
+    if (creditLimit > 0 && resetSeconds === 0) {
+      // Always allow.
+      return Promise.resolve({
+        isAllowed: true,
+        currentCredit: creditLimit,
+        nextResetSeconds: 0,
       });
     }
 

@@ -17,6 +17,4 @@ module.exports = {
   METRICS_STATUS_REJECTED: 'rejected',
   METRICS_STATUS_CANARY_ACCEPTED: 'canary-accepted',
   METRICS_STATUS_CANARY_REJECTED: 'canary-rejected',
-
-  METRICS_LABEL_DEFAULT: 'default-reject',
 };
