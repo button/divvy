@@ -2,17 +2,22 @@
 
 Divvy is a quota / rate limiter service, implemented in NodeJS and backed by Redis. Divvy acts as a thin policy and configuration layer between your services and Redis. Using divvy, you can decouple rate limiting policy from the services which rely on it.
 
-**Table of Contents**
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Contents**
 
-1. [Features](#features)
-2. [Requirements](#requirements)
-3. [Getting Started](#getting-started)
-4. [Configuration](#configuration)
-5. [Protocol](#protocol)
-6. [Server Options](#server-options)
-7. [Statistics](#statistics)
-8. [Client Libraries](#client-libraries)
-9. [License and Copyright](#license-and-copyright)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Getting Started](#getting-started)
+- [Protocol](#protocol)
+- [Configuration](#configuration)
+- [Advanced usage](#advanced-usage)
+- [Server options](#server-options)
+- [Statistics](#statistics)
+- [Client Libraries](#client-libraries)
+- [License and Copyright](#license-and-copyright)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Features
 
@@ -35,7 +40,7 @@ Continue to [Getting Started](#getting-started) for a more detailed example.
 ## Requirements
 
 * A Redis server.
-* NodeJS version 6.10.x or newer.
+* NodeJS version 8.0.0 or newer.
 * Clients: A TCP connection to the Divvy service.
 
 ## Getting Started
@@ -286,7 +291,7 @@ OK true 99 60                   <-- fresh quota!
 
 ### Canarying rules
 
-By default when responding to an incoming request, the server will evaluate the request sequentially against all rules, stopping and returning a protocol response based on the first rule that matches. We call this "stop upon match" behavior the _"match policy"_ of the rule, and the default setting is corresponds to a rule configuration of `"matchPolicy": "stop"`.
+By default when responding to an incoming request, the server will evaluate the request sequentially against all rules, stopping and returning a protocol response based on the first rule that matches. We call this "stop upon match" behavior the _"match policy"_ of the rule, and the default setting corresponds to a rule configuration of `"matchPolicy": "stop"`.
 
 Sometimes, you may wish to deploy a new rule and observe its match rate, but not (yet) serve a protocol response based on it. In these cases, the quota of the rule should be decremented and metrics should be published, but the server should ignore the accept/reject result and continue on to the next rule. We call this "canarying" the rule, and it can be configured on a per-rule basis as `"matchPolicy": "canary"`.
 
