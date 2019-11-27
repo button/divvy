@@ -1,5 +1,9 @@
 # Divvy Changelog
 
+## Current version (in development)
+
+* Bump dependencies.
+
 ## v1.4.2 (2019-07-08)
 
 * Bump dependencies.
