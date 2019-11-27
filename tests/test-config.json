@@ -16,6 +16,18 @@
       "operation": {
         "method": "GET",
         "path": "/ping",
+        "local": "true"
+      },
+      "creditLimit": 100,
+      "resetSeconds": 60,
+      "matchPolicy": "canary",
+      "label": "get-ping-by-ip-from-local",
+      "comment": "canary: 100 rpm for /ping for local users"
+    },
+    {
+      "operation": {
+        "method": "GET",
+        "path": "/ping",
         "ip": "*"
       },
       "creditLimit": 10,

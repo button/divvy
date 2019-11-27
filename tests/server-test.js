@@ -186,6 +186,52 @@ describe('src/server', function () {
       }).catch(done);
     });
 
+    it('for an operation that matches a passing canary rule', function (done) {
+      backend.hit.returns(Promise.resolve({
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      }));
+      client.hit({
+        method: 'GET',
+        path: '/ping',
+        local: 'true',
+        ip: '1.2.3.4',
+      }).then(() => {
+        sinon.assert.callCount(instrumenter.countHit, 2);
+        sinon.assert.calledWith(instrumenter.countHit, 'canary-accepted', 'get-ping-by-ip-from-local');
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'get-ping-by-ip');
+        sinon.assert.callCount(instrumenter.timeHit, 1);
+        done();
+      }).catch(done);
+    });
+
+    it('for an operation that matches a rejecting canary rule rule', function (done) {
+      backend.hit.onCall(0).returns(Promise.resolve({
+        isAllowed: false,
+        currentCredit: 0,
+        nextResetSeconds: 60,
+      }));
+      backend.hit.onCall(1).returns(Promise.resolve({
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      }));
+
+      client.hit({
+        method: 'GET',
+        path: '/ping',
+        local: 'true',
+        ip: '1.2.3.4',
+      }).then(() => {
+        sinon.assert.callCount(instrumenter.countHit, 2);
+        sinon.assert.calledWith(instrumenter.countHit, 'canary-rejected', 'get-ping-by-ip-from-local');
+        sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'get-ping-by-ip');
+        sinon.assert.callCount(instrumenter.timeHit, 1);
+        done();
+      }).catch(done);
+    });
+
     it('for an unknown command', function (done) {
       client._enqueueMessage('EGGPLANT not-tasty\n').promise.then(() => {
         done(new Error('Should have failed'));

@@ -116,27 +116,37 @@ HIT method=GET path=/status
 OK true 994 56
 ```
 
-Now, let's try hitting a different a resource. The example config says there is a limit of _3 requests per hour for GET /pantry/cookies, by IP_. Let's see how many cookies we can get:
+Now, let's try hitting a different a resource. The example config says there is a limit of _3 requests per hour for GET /pantry/cookies/*, by IP_. The examples below all match the following rule in `example-config.{ini,json}`:
+
+```ini
+[method=GET path=/pantry/cookies/* ip=*]
+creditLimit = 3
+resetSeconds = 3600
+actorField = ip
+comment = '3 requests per hour for GET /pantry/cookies, by IP'
+```
+
+Let's simulate a single IP fetching a variety of cookies:
 
 ```
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/chocolate-chip ip=192.168.1.1
 OK true 2 3600
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/chocolate-chip ip=192.168.1.1
 OK true 1 3599
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/oatmeal ip=192.168.1.1
 OK true 0 3598
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/cricket-flavored ip=192.168.1.1
 OK false 0 3597
 ```
 
-You can see that the last attempt was denied, because we have already had 3 cookies this hour. What if we use a different IP?
+You can see that the last attempt was denied, because this IP had already consumed 3 cookies this hour. What if we use a different IP?
 
 ```
-HIT method=GET path=/pantry/cookies ip=4.3.2.1
+HIT method=GET path=/pantry/cookies/oatmeal ip=4.3.2.1
 OK true 2 3600
 ```
 
-This policy illustrates a powerful concept: automatic partitioning of counters based on the _actor_, which in this case is configured to be whatever value is given as `ip`.
+This policy illustrates a powerful concept: Automatic partitioning of counters based on the _actor_, which in this case is configured to be whatever value is given as `ip`.
 
 ## Protocol
 
@@ -222,6 +232,7 @@ The following optional fields are also supported:
 * `label`: A short, slug-like name for the rule. If set, Prometheus metrics for hits matching the rule will be labeled with `rule_label` as this value. Labels have no effect on statsd metrics.
 * `comment`: A diagnostic comment, printed when running server with `DEBUG=divvy`.
 * `actorField`: Described in _"Actors and multi-tenancy"_.
+* `matchPolicy`: Either `"stop"` (the default), or `"canary"`. See _"Advanced usage"_ for details on canarying rules.
 
 ### File format
 
@@ -270,6 +281,69 @@ OK true 99 60                   <-- fresh quota!
 ```
 
 **Note:** Divvy never interprets the value of `actorField`. Since Divvy automatically tracks new quota upon receiving a new actor, clients must be careful to normalize these fields.
+
+## Advanced usage
+
+### Canarying rules
+
+By default when responding to an incoming request, the server will evaluate the request sequentially against all rules, stopping and returning a protocol response based on the first rule that matches. We call this "stop upon match" behavior the _"match policy"_ of the rule, and the default setting is corresponds to a rule configuration of `"matchPolicy": "stop"`.
+
+Sometimes, you may wish to deploy a new rule and observe its match rate, but not (yet) serve a protocol response based on it. In these cases, the quota of the rule should be decremented and metrics should be published, but the server should ignore the accept/reject result and continue on to the next rule. We call this "canarying" the rule, and it can be configured on a per-rule basis as `"matchPolicy": "canary"`.
+
+#### Example canary rule
+
+Let's say you have the following configuration deployed to production:
+
+```ini
+[method=GET path=/pantry/cookies/* ip=*]
+creditLimit = 3
+resetSeconds = 3600
+actorField = ip
+comment = '3 requests per hour for GET /pantry/cookies, by IP'
+
+[method=GET path=/pantry/* ip=*]
+creditLimit = 1
+resetSeconds = 3600
+actorField = ip
+comment = '1 request per day for GET /pantry/*, by IP'
+```
+
+Let's say you'd like to add a new rule ahead of these: Allow at most one "special cookie" to be requested per day, across all IPs. We update the configuration file with this as a new highest-precedence rule:
+
+```ini
+[method=GET path=/pantry/cookies/special-cookie]
+creditLimit = 1
+resetSeconds = 86400
+comment = 'canary: 1 request per day for GET /pantry/cookies/special-cookie'
+matchPolicy = canary  # <----- Canary this rule, don't take action on it.
+
+[method=GET path=/pantry/cookies/* ip=*]
+creditLimit = 3
+resetSeconds = 3600
+actorField = ip
+comment = '3 requests per hour for GET /pantry/cookies, by IP'
+
+[method=GET path=/pantry/* ip=*]
+creditLimit = 1
+resetSeconds = 3600
+actorField = ip
+comment = '1 request per day for GET /pantry/*, by IP'
+```
+
+Requests matching this rule will test and decrement its quota, and publish metrics, but the response will fall through to other rules:
+
+```
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK true 2 3600
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK true 1 3599
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK true 0 3598
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK false 0 3597
+```
+
+After looking at metrics and confirming expected behavior, you can promote this rule to take action by setting `"matchPolicy": "stop"` in the config, or simply deleting the `matchPolicy` line as `"stop"` is the default policy.
 
 ## Server options
 

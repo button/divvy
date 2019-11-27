@@ -3,6 +3,7 @@
 ## Current version (in development)
 
 * Bump dependencies.
+* New feature: Canarying rules via configurable `matchPolicy`.
 
 ## v1.4.2 (2019-07-08)
 

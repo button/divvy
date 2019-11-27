@@ -4,6 +4,7 @@ const ini = require('ini');
 const path = require('path');
 
 const Utils = require('./utils');
+const Constants = require('./constants');
 
 /**
  * In support of globbing, we turn the operation value into
@@ -53,14 +54,15 @@ class Config {
     }
 
     (rawConfig.overrides || []).forEach(function (rule) {
-      config.addRule(
-        Utils.stringifyObjectValues(rule.operation),
-        rule.creditLimit,
-        rule.resetSeconds,
-        rule.actorField,
-        rule.label,
-        rule.comment
-      );
+      config.addRule({
+        operation: Utils.stringifyObjectValues(rule.operation),
+        creditLimit: rule.creditLimit,
+        resetSeconds: rule.resetSeconds,
+        actorField: rule.actorField,
+        matchPolicy: rule.matchPolicy,
+        label: rule.label,
+        comment: rule.comment,
+      });
     });
 
     return config;
@@ -79,8 +81,6 @@ class Config {
 
   /** Creates a new instance from an `ini` file.  */
   static fromIniFile(filename) {
-    // TODO(mikey): Tests.
-
     const rawConfig = ini.parse(fs.readFileSync(filename, 'utf-8'));
     const config = new Config();
 
@@ -94,10 +94,13 @@ class Config {
 
       // Optional fields.
       const actorField = rulegroupConfig.actorField || '';
+      const matchPolicy = rulegroupConfig.matchPolicy || '';
       const comment = rulegroupConfig.comment || '';
       const label = rulegroupConfig.label || '';
 
-      config.addRule(operation, creditLimit, resetSeconds, actorField, label, comment);
+      config.addRule({
+        operation, creditLimit, resetSeconds, actorField, matchPolicy, label, comment,
+      });
     }
 
     return config;
@@ -124,15 +127,24 @@ class Config {
    * @param {number} creditLimit  Number of operations to permit every `resetSeconds`
    * @param {number} resetSeconds Credit renewal interval.
    * @param {string} actorField   Name of the actor field (optional).
+   * @param {string} matchPolicy  Match policy (optional).
    * @param {string} label        Optional name for this rule.
    * @param {string} comment      Optional diagnostic name for this rule.
    */
-  addRule(operation, creditLimit, resetSeconds, actorField, label, comment) {
-    const foundRule = this.findRule(operation);
+  addRule({
+    operation, creditLimit, resetSeconds, actorField, matchPolicy, label, comment,
+  }) {
+    if (!operation) {
+      throw new Error('Operation must be specified.');
+    }
+    const foundRules = this.findRules(operation)
+      .filter((rule) => rule.matchPolicy === Constants.MATCH_POLICY_STOP);
 
-    if (foundRule !== null) {
+    const firstFoundRule = foundRules.length ? foundRules[0] : null;
+
+    if (firstFoundRule !== null) {
       throw new Error(
-        `Unreachable rule for operation=${operation}; masked by operation=${foundRule.operation}`
+        `Unreachable rule for operation=${operation}; masked by operation=${firstFoundRule.operation}`
       );
     }
 
@@ -153,11 +165,22 @@ class Config {
       this.ruleLabels.add(label);
     }
 
+    if (matchPolicy) {
+      switch (matchPolicy) {
+        case Constants.MATCH_POLICY_STOP:
+        case Constants.MATCH_POLICY_CANARY:
+          break;
+        default:
+          throw new Error(`Invalid matchPolicy "${matchPolicy}"`);
+      }
+    }
+
     const rule = {
       operation,
       creditLimit,
       resetSeconds,
-      actorField,
+      actorField: actorField || null,
+      matchPolicy: matchPolicy || Constants.MATCH_POLICY_STOP,
       label: label || null,
       comment: comment || null,
     };
@@ -166,9 +189,22 @@ class Config {
     debug('config: installed rule: %j', rule);
   }
 
-  /** Returns the rule matching operation, or `null` if no match. */
-  findRule(operation) {
+  /**
+   * Finds all rules matching this operation and returns them as an array.
+   *
+   * In typical usage, the result will either be length 1 (the request
+   * matched a rule with matchPolicy "stop"), or zero (the request did not
+   * match any rule).
+   *
+   * In more advanced usages, "canary" may be returned.
+   */
+  findRules(operation) {
+    const result = [];
     for (const rule of this.rules) {
+      if (!rule.matchPolicy) {
+        throw new Error('Bug: Rule does define a match policy.');
+      }
+
       let match = true;
       for (const operationKey of Object.keys(rule.operation)) {
         const operationValue = rule.operation[operationKey];
@@ -187,11 +223,14 @@ class Config {
       }
 
       if (match) {
-        return rule;
+        result.push(rule);
+        if (rule.matchPolicy === Constants.MATCH_POLICY_STOP) {
+          break;
+        }
       }
     }
 
-    return null;
+    return result;
   }
 
   toJson(pretty) {
