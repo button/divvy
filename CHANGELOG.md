@@ -5,7 +5,7 @@
 ### Breaking changes
 
 * Configuration: A default rule must always be defined.
-* Instrumentation: Match "type" is no longer included statsd or prometheus metrics.
+* Instrumentation: Match "type" is no longer included in statsd or prometheus metrics.
 
 ### New features
 

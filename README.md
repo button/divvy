@@ -412,13 +412,13 @@ If `STATSD_HOST` and `STATSD_PORT` are given, the server will report certain met
 
 ### Prometheus
 
-If you are using Prometheus, you may specify the `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables to public metrics and allow your Prometheus scraper to query them. The following metrics will be published:
+If you are using Prometheus, you may specify the `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables to publish metrics and allow your Prometheus scraper to query them. The following metrics will be published:
 
 * `divvy_tcp_connections_total`: Gauge of current open TCP connections.
 * `divvy_hit_duration_seconds`: Histogram of processing duration for HITs.
 * `divvy_hits_total`: Counter of all HIT operations. Labeled by:
   * `status`: either `accepted` or `rejected` for normal rules; either `canary-accepted` or `canary-rejected` for rules with `"canary"` match policy.
-  * `rule_label`: the rule's `label` field, if specified. The value `default-reject` will be used for requests that match no rules.
+  * `rule_label`: the rule's `label` field, if specified.
 * `divvy_errors_total`: Counter of divvy errors. Labeled by:
   * `code`: the type of error, such as `unknown-command`.
 
