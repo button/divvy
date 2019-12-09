@@ -139,12 +139,10 @@ class Config {
     if (!operation) {
       throw new Error('Operation must be specified.');
     }
-    const foundRules = this.findRules(operation)
-      .filter((rule) => rule.matchPolicy === Constants.MATCH_POLICY_STOP);
+    const firstFoundRule = this.findRules(operation)
+      .find((rule) => rule.matchPolicy === Constants.MATCH_POLICY_STOP);
 
-    const firstFoundRule = foundRules.length ? foundRules[0] : null;
-
-    if (firstFoundRule !== null) {
+    if (firstFoundRule) {
       throw new Error(
         `Unreachable rule for operation=${operation}; masked by operation=${firstFoundRule.operation}`
       );

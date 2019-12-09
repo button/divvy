@@ -227,8 +227,8 @@ Configuration is expressed as a sequence of *buckets*. Buckets have the followin
 * `operation`: Zero or more key-value pairs which must be found in the incoming `HIT` request.
   * The special value `*` may be used here to express, "key must be present, but any value can match".
   * Glob keys are supported in the interest of specifying limits across subpaths, such as `/v1/billing/*`.
-* `creditLimit`: The number of hits that are allowed in the quota period, typically a positive number. A value of zero will cause matching requests to always be denied (see _"Always allowing or denying"_).
-* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds, typically a positive number. A value of zero has special meaning (see _"Always allowing or denying"_).
+* `creditLimit`: The number of hits that are allowed in the quota period, typically a positive integer. A value of zero will cause matching requests to always be denied (see _"Always allowing or denying"_).
+* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds, typically a positive integer. A value of zero has special meaning (see _"Always allowing or denying"_).
 
 The following optional fields are also supported:
 

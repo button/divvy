@@ -19,7 +19,7 @@ describe('src/config', function () {
           isAuthenticated: 'true',
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             path: '/ping',
@@ -40,7 +40,7 @@ describe('src/config', function () {
           isAuthenticated: 'nope',
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             path: '/ping',
@@ -60,7 +60,7 @@ describe('src/config', function () {
           isAuthenticated: 'nope',
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'POST',
             ip: '*',
@@ -76,7 +76,7 @@ describe('src/config', function () {
         [rule] = config.findRules({
           method: 'blah',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {},
           creditLimit: 1,
           resetSeconds: 60,
@@ -165,7 +165,7 @@ describe('src/config', function () {
         });
 
         const rule = config.findRules({ service: 'myget', method: 'GET' })[0];
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             service: 'my*',
@@ -179,7 +179,7 @@ describe('src/config', function () {
         }, rule);
 
         const other = config.findRules({ service: 'yourtest', method: 'GET' })[0];
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             service: 'your*',
@@ -200,7 +200,7 @@ describe('src/config', function () {
           isAuthenticated: 'true',
           ip: '1.2.3.4',
         })[0];
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'POST',
             path: '/account*',
@@ -221,7 +221,7 @@ describe('src/config', function () {
           isAuthenticated: 'nope', // must cause a different rule to match
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'POST',
             ip: '*',
@@ -243,7 +243,7 @@ describe('src/config', function () {
           ip: '1.2.3.4',
         });
         assert.equal(2, rules.length);
-        assert.deepEqual([
+        assert.deepStrictEqual([
           {
             operation: {
               method: 'GET',

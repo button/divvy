@@ -186,13 +186,13 @@ describe('src/server', function () {
       }).catch(done);
     });
 
-    it('for an operation that matches a passing canary rule', function (done) {
+    it('for an operation that matches a passing canary rule', function () {
       backend.hit.returns(Promise.resolve({
         isAllowed: true,
         currentCredit: 100,
         nextResetSeconds: 60,
       }));
-      client.hit({
+      return client.hit({
         method: 'GET',
         path: '/ping',
         local: 'true',
@@ -202,11 +202,10 @@ describe('src/server', function () {
         sinon.assert.calledWith(instrumenter.countHit, 'canary-accepted', 'get-ping-by-ip-from-local');
         sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'get-ping-by-ip');
         sinon.assert.callCount(instrumenter.timeHit, 1);
-        done();
-      }).catch(done);
+      });
     });
 
-    it('for an operation that matches a rejecting canary rule rule', function (done) {
+    it('for an operation that matches a rejecting canary rule rule', function () {
       backend.hit.onCall(0).returns(Promise.resolve({
         isAllowed: false,
         currentCredit: 0,
@@ -218,7 +217,7 @@ describe('src/server', function () {
         nextResetSeconds: 60,
       }));
 
-      client.hit({
+      return client.hit({
         method: 'GET',
         path: '/ping',
         local: 'true',
@@ -228,8 +227,7 @@ describe('src/server', function () {
         sinon.assert.calledWith(instrumenter.countHit, 'canary-rejected', 'get-ping-by-ip-from-local');
         sinon.assert.calledWith(instrumenter.countHit, 'accepted', 'get-ping-by-ip');
         sinon.assert.callCount(instrumenter.timeHit, 1);
-        done();
-      }).catch(done);
+      });
     });
 
     it('for an unknown command', function (done) {

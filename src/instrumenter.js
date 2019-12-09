@@ -90,7 +90,12 @@ class Instrumenter {
 
   /**
    * Record a HIT operation.
-   * @param {string} status The status of the hit, either "accepted" or "rejected".
+   * @param {string} status The status of the hit, one of
+   *    `Constants.METRICS_STATUS_ACCEPTED`,
+   *    `Constants.METRICS_STATUS_REJECTED`,
+   *    `Constants.METRICS_STATUS_CANARY_ACCEPTED`,
+   *    `Constants.METRICS_STATUS_CANARY_REJECTED`.
+   *
    * @param {string} label   The matching rule label, or null.
    */
   countHit(status, label) {
