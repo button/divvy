@@ -1,6 +1,6 @@
 # Divvy Changelog
 
-## Current version (in development)
+## v1.5.0 (2019-12-10)
 
 ### Breaking changes
 
