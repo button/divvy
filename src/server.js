@@ -3,6 +3,7 @@ const debug = require('debug')('divvy');
 const EventEmitter = require('events');
 const net = require('net');
 const carrier = require('carrier');
+const Constants = require('./constants');
 const Errors = require('./errors');
 const Utils = require('./utils');
 const { invariant } = Utils;
@@ -104,39 +105,59 @@ class Server extends EventEmitter {
     }
   }
 
-  handleHit(conn, operation, startDate) {
-    const rule = this.config.findRule(operation);
-    debug('hit: operation=%j rule=%j%s', operation, rule,
-      (rule && rule.comment) ? ` (${rule.comment})` : '');
+  /**
+   * Evaluates a list of rules, returning the prevailing status.
+   * @param {*} rules
+   * @param {*} operation
+   */
+  async evaluateRules(rules, operation) {
+    if (!rules.length) {
+      throw new Error('Bug: Should always have at least one rule to evaluate.');
+    }
 
-    let oper;
-    if (!rule) {
-      oper = Promise.resolve({
-        isAllowed: false,
-        currentCredit: 0,
-        nextResetSeconds: -1,
-      });
-    } else {
-      const actor = rule.actorField
-        ? (operation[rule.actorField] || '') : '';
+    let lastStatus = null;
+    for (const rule of rules) {
+      debug('hit: operation=%j rule=%j%s', operation, rule, rule.comment);
+      const actor = rule.actorField ? (operation[rule.actorField] || '') : '';
 
-      oper = this.backend.hit(rule.operation,
+      // eslint-disable-next-line no-await-in-loop
+      const status = await this.backend.hit(rule.operation,
         actor,
         rule.creditLimit,
         rule.resetSeconds);
+
+      let statusForInstrumenter;
+      if (rule.matchPolicy === Constants.MATCH_POLICY_CANARY) {
+        statusForInstrumenter = status.isAllowed
+          ? Constants.METRICS_STATUS_CANARY_ACCEPTED : Constants.METRICS_STATUS_CANARY_REJECTED;
+      } else {
+        statusForInstrumenter = status.isAllowed
+          ? Constants.METRICS_STATUS_ACCEPTED : Constants.METRICS_STATUS_REJECTED;
+      }
+
+      const ruleLabel = (rule && rule.label) ? rule.label : '';
+      this.instrumenter.countHit(statusForInstrumenter, ruleLabel);
+
+      lastStatus = status;
+
+      if (rule.matchPolicy === Constants.MATCH_POLICY_STOP) {
+        break;
+      }
     }
 
-    return oper.then((status) => {
+    return lastStatus;
+  }
+
+  async handleHit(conn, operation, startDate) {
+    try {
+      const rules = this.config.findRules(operation);
+      const status = await this.evaluateRules(rules, operation);
       this.sendStatus(conn, STATUS_OK,
         `${!!status.isAllowed} ${status.currentCredit} ${status.nextResetSeconds}`);
       this.instrumenter.timeHit(startDate);
-      const result = status.isAllowed ? 'accepted' : 'rejected';
-      const matchType = Server.getMatchType(rule);
-      const ruleLabel = (rule && rule.label) ? rule.label : '';
-      this.instrumenter.countHit(result, matchType, ruleLabel);
-    }).catch((err) => {
+    } catch (err) {
       this.sendError(conn, `Server error: ${err}`);
-    });
+    }
   }
 
   sendError(conn, errorCode, errorMessage) {

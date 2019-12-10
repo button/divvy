@@ -1,3 +1,5 @@
+/* eslint-disable max-classes-per-file */
+
 class DivvyError extends Error {
   constructor(message) {
     super(message);

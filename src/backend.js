@@ -2,9 +2,7 @@ const debug = require('debug')('divvy');
 
 const fs = require('fs');
 const redis = require('redis');
-const Bluebird = require('bluebird');
-Bluebird.promisifyAll(redis.RedisClient.prototype);
-Bluebird.promisifyAll(redis.Multi.prototype);
+const { promisify } = require('util');
 
 const path = require('path');
 const SCRIPT_FILE = path.resolve(__dirname, '../scripts/pipe.lua');
@@ -20,6 +18,9 @@ class Backend {
     options = options || {};
     this.redis = options.redisClient || redis.createClient();
     this.scriptSha = null;
+
+    this.evalshaAsync = promisify(this.redis.evalsha).bind(this.redis);
+    this.scriptAsync = promisify(this.redis.script).bind(this.redis);
   }
 
   /**
@@ -38,10 +39,20 @@ class Backend {
     }
 
     if (creditLimit <= 0) {
+      // Always deny.
       return Promise.resolve({
         isAllowed: false,
         currentCredit: 0,
         nextResetSeconds: -1,
+      });
+    }
+
+    if (creditLimit > 0 && resetSeconds === 0) {
+      // Always allow.
+      return Promise.resolve({
+        isAllowed: true,
+        currentCredit: creditLimit,
+        nextResetSeconds: 0,
       });
     }
 
@@ -59,7 +70,7 @@ class Backend {
 
     debug(`redis: evalsha ${this.scriptSha} 1 ${keyName} ${resetSeconds} ${initialValue}`);
 
-    return this.redis.evalshaAsync(
+    return this.evalshaAsync(
       this.scriptSha, 1, keyName, resetSeconds, initialValue
     ).then((result) => {
       if (!result || result.length !== 3) {
@@ -75,7 +86,7 @@ class Backend {
 
   initialize() {
     const scriptData = fs.readFileSync(SCRIPT_FILE).toString();
-    return this.redis.scriptAsync('load', scriptData).then((sha) => {
+    return this.scriptAsync('load', scriptData).then((sha) => {
       this.scriptSha = sha;
     });
   }

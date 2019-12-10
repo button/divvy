@@ -13,13 +13,13 @@ describe('src/config', function () {
       it('for normal rules', function () {
         let rule;
 
-        rule = config.findRule({
+        [rule] = config.findRules({
           method: 'GET',
           path: '/ping',
           isAuthenticated: 'true',
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             path: '/ping',
@@ -29,17 +29,18 @@ describe('src/config', function () {
           creditLimit: 100,
           resetSeconds: 60,
           actorField: 'ip',
+          matchPolicy: 'stop',
           label: null,
           comment: '100 rpm for /ping for authenticated users, by ip',
         }, rule);
 
-        rule = config.findRule({
+        [rule] = config.findRules({
           method: 'GET',
           path: '/ping',
           isAuthenticated: 'nope',
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             path: '/ping',
@@ -48,17 +49,18 @@ describe('src/config', function () {
           creditLimit: 10,
           resetSeconds: 60,
           actorField: 'ip',
+          matchPolicy: 'stop',
           label: 'get-ping-by-ip',
           comment: '10 rpm for /ping for non-authenticated users, by ip',
         }, rule);
 
-        rule = config.findRule({
+        [rule] = config.findRules({
           method: 'POST',
           path: '/blort',
           isAuthenticated: 'nope',
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'POST',
             ip: '*',
@@ -66,18 +68,20 @@ describe('src/config', function () {
           creditLimit: 5,
           resetSeconds: 60,
           actorField: 'ip',
+          matchPolicy: 'stop',
           label: 'post-by-ip',
           comment: '5 rpm for any POST, by ip',
         }, rule);
 
-        rule = config.findRule({
+        [rule] = config.findRules({
           method: 'blah',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {},
           creditLimit: 1,
           resetSeconds: 60,
-          actorField: '',
+          actorField: null,
+          matchPolicy: 'stop',
           label: null,
           comment: 'Default quota',
         }, rule);
@@ -86,64 +90,82 @@ describe('src/config', function () {
       it('with an unreachable rule', function () {
         const config = new Config();
 
-        config.addRule({ service: 'myservice', method: 'GET' }, 100, 60);
-        config.addRule({ service: 'myservice', method: 'POST' }, 10, 20);
-        config.addRule({ service: 'myservice' }, 1, 600);
+        config.addRule({ operation: { service: 'myservice', method: 'GET' }, creditLimit: 100, resetSeconds: 60 });
+        config.addRule({ operation: { service: 'myservice', method: 'POST' }, creditLimit: 10, resetSeconds: 20 });
+        config.addRule({ operation: { service: 'myservice' }, creditLimit: 1, resetSeconds: 600 });
 
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'POST' }, 100, 60);
+          config.addRule({ operation: { service: 'myservice', method: 'POST' }, creditLimit: 100, resetSeconds: 60 });
         }, /Unreachable rule/);
       });
 
       it('with a rule containing an invalid creditLimit', function () {
         const config = new Config();
-        config.addRule({ service: 'myservice', method: 'GET' }, 0, 60);
+        config.addRule({ operation: { service: 'myservice', method: 'GET' }, creditLimit: 0, resetSeconds: 60 });
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'POST' }, -1, 60);
+          config.addRule({ operation: { service: 'myservice', method: 'POST' }, creditLimit: -1, resetSeconds: 60 });
         }, /Invalid creditLimit/);
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'PATCH' }, 'seven', 60);
+          config.addRule({ operation: { service: 'myservice', method: 'PATCH' }, creditLimit: 'seven', resetSeconds: 60 });
         }, /Invalid creditLimit/);
       });
 
       it('with a rule containing an invalid label', function () {
         const config = new Config();
-        config.addRule({ service: 'myservice', method: 'GET' }, 0, 60, null, 'nice-rule');
+        config.addRule({
+          operation: { service: 'myservice', method: 'GET' },
+          creditLimit: 0,
+          resetSeconds: 60,
+          label: 'nice-rule',
+        });
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'POST' }, 0, 60, null, 'this is fine');
+          config.addRule({
+            operation: { service: 'myservice', method: 'POST' },
+            creditLimit: 0,
+            resetSeconds: 60,
+            label: 'this is fine',
+          });
         }, /Invalid rule label "this is fine"/);
       });
 
       it('with a rule containing a duplicate label', function () {
         const config = new Config();
-        config.addRule({ service: 'myservice', method: 'GET' }, 0, 60, null, 'nice-rule');
+        config.addRule({
+          operation: { service: 'myservice', method: 'GET' }, creditLimit: 0, resetSeconds: 60, label: 'nice-rule',
+        });
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'POST' }, 0, 60, null, 'nice-rule');
+          config.addRule({
+            operation: { service: 'myservice', method: 'POST' }, creditLimit: 0, resetSeconds: 60, label: 'nice-rule',
+          });
         }, /A rule with label "nice-rule" already exists/);
       });
 
       it('with a rule where resetSeconds < 1', function () {
         const config = new Config();
-        config.addRule({ service: 'myservice', method: 'GET' }, 20, 1);
+        config.addRule({ operation: { service: 'myservice', method: 'GET' }, creditLimit: 20, resetSeconds: 1 });
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'POST' }, 70, 0);
+          config.addRule({ operation: { service: 'myservice', method: 'POST' }, creditLimit: 70, resetSeconds: 0 });
         }, /Invalid resetSeconds/);
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'POST' }, 70, -20);
+          config.addRule({ operation: { service: 'myservice', method: 'POST' }, creditLimit: 70, resetSeconds: -20 });
         }, /Invalid resetSeconds/);
         assert.throws(() => {
-          config.addRule({ service: 'myservice', method: 'POST' }, 10, 'fish');
+          config.addRule({ operation: { service: 'myservice', method: 'POST' }, creditLimit: 10, resetSeconds: 'fish' });
         }, /Invalid resetSeconds/);
       });
 
       it('handles simple glob keys', function () {
         const config = new Config();
 
-        config.addRule({ service: 'my*', method: 'GET' }, 100, 60, 'actor', 'rule-a', 'a');
-        config.addRule({ service: 'your*', method: 'GET' }, 200, 40, 'jim', 'rule-b', 'b');
+        config.addRule({
+          operation: { service: 'my*', method: 'GET' }, creditLimit: 100, resetSeconds: 60, actorField: 'actor', label: 'rule-a', comment: 'a',
+        });
+        config.addRule({
+          operation: { service: 'your*', method: 'GET' }, creditLimit: 200, resetSeconds: 40, actorField: 'jim', label: 'rule-b', comment: 'b',
+        });
 
-        const rule = config.findRule({ service: 'myget', method: 'GET' });
-        assert.deepEqual({
+        const rule = config.findRules({ service: 'myget', method: 'GET' })[0];
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             service: 'my*',
@@ -151,12 +173,13 @@ describe('src/config', function () {
           creditLimit: 100,
           resetSeconds: 60,
           actorField: 'actor',
+          matchPolicy: 'stop',
           label: 'rule-a',
           comment: 'a',
         }, rule);
 
-        const other = config.findRule({ service: 'yourtest', method: 'GET' });
-        assert.deepEqual({
+        const other = config.findRules({ service: 'yourtest', method: 'GET' })[0];
+        assert.deepStrictEqual({
           operation: {
             method: 'GET',
             service: 'your*',
@@ -164,19 +187,20 @@ describe('src/config', function () {
           creditLimit: 200,
           resetSeconds: 40,
           actorField: 'jim',
+          matchPolicy: 'stop',
           label: 'rule-b',
           comment: 'b',
         }, other);
       });
 
       it('with a glob key proceeded by normal key', function () {
-        let rule = config.findRule({
+        let rule = config.findRules({
           method: 'POST',
           path: '/accounts/logout',
           isAuthenticated: 'true',
           ip: '1.2.3.4',
-        });
-        assert.deepEqual({
+        })[0];
+        assert.deepStrictEqual({
           operation: {
             method: 'POST',
             path: '/account*',
@@ -186,17 +210,18 @@ describe('src/config', function () {
           creditLimit: 1,
           resetSeconds: 60,
           actorField: 'ip',
+          matchPolicy: 'stop',
           label: null,
           comment: '1 rpm for POST /account*, by ip',
         }, rule);
 
-        rule = config.findRule({
+        [rule] = config.findRules({
           method: 'POST',
           path: '/accounts/logout',
           isAuthenticated: 'nope', // must cause a different rule to match
           ip: '1.2.3.4',
         });
-        assert.deepEqual({
+        assert.deepStrictEqual({
           operation: {
             method: 'POST',
             ip: '*',
@@ -204,9 +229,48 @@ describe('src/config', function () {
           creditLimit: 5,
           resetSeconds: 60,
           actorField: 'ip',
+          matchPolicy: 'stop',
           label: 'post-by-ip',
           comment: '5 rpm for any POST, by ip',
         }, rule);
+      });
+
+      it('with a canary rule', function () {
+        const rules = config.findRules({
+          method: 'GET',
+          path: '/ping',
+          local: 'true',
+          ip: '1.2.3.4',
+        });
+        assert.equal(2, rules.length);
+        assert.deepStrictEqual([
+          {
+            operation: {
+              method: 'GET',
+              path: '/ping',
+              local: 'true',
+            },
+            creditLimit: 100,
+            resetSeconds: 60,
+            matchPolicy: 'canary',
+            actorField: null,
+            label: 'get-ping-by-ip-from-local',
+            comment: 'canary: 100 rpm for /ping for local users',
+          },
+          {
+            operation: {
+              method: 'GET',
+              path: '/ping',
+              ip: '*',
+            },
+            creditLimit: 10,
+            resetSeconds: 60,
+            actorField: 'ip',
+            matchPolicy: 'stop',
+            label: 'get-ping-by-ip',
+            comment: '10 rpm for /ping for non-authenticated users, by ip',
+          },
+        ], rules);
       });
     });
   });

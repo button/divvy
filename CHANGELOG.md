@@ -1,5 +1,21 @@
 # Divvy Changelog
 
+## v1.5.0 (2019-12-10)
+
+### Breaking changes
+
+* Configuration: A default rule must always be defined.
+* Instrumentation: Match "type" is no longer included in statsd or prometheus metrics.
+
+### New features
+
+* Canary rules via configurable `matchPolicy`.
+
+### Other changes
+
+* Bump dependencies.
+* Instrumentation: Statsd metrics will be recorded with the label name, when present.
+
 ## v1.4.2 (2019-07-08)
 
 * Bump dependencies.

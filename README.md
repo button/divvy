@@ -2,17 +2,22 @@
 
 Divvy is a quota / rate limiter service, implemented in NodeJS and backed by Redis. Divvy acts as a thin policy and configuration layer between your services and Redis. Using divvy, you can decouple rate limiting policy from the services which rely on it.
 
-**Table of Contents**
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Contents**
 
-1. [Features](#features)
-2. [Requirements](#requirements)
-3. [Getting Started](#getting-started)
-4. [Configuration](#configuration)
-5. [Protocol](#protocol)
-6. [Server Options](#server-options)
-7. [Statistics](#statistics)
-8. [Client Libraries](#client-libraries)
-9. [License and Copyright](#license-and-copyright)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Getting Started](#getting-started)
+- [Protocol](#protocol)
+- [Configuration](#configuration)
+- [Advanced usage](#advanced-usage)
+- [Server options](#server-options)
+- [Statistics](#statistics)
+- [Client Libraries](#client-libraries)
+- [License and Copyright](#license-and-copyright)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Features
 
@@ -35,7 +40,7 @@ Continue to [Getting Started](#getting-started) for a more detailed example.
 ## Requirements
 
 * A Redis server.
-* NodeJS version 6.10.x or newer.
+* NodeJS version 8.0.0 or newer.
 * Clients: A TCP connection to the Divvy service.
 
 ## Getting Started
@@ -116,27 +121,37 @@ HIT method=GET path=/status
 OK true 994 56
 ```
 
-Now, let's try hitting a different a resource. The example config says there is a limit of _3 requests per hour for GET /pantry/cookies, by IP_. Let's see how many cookies we can get:
+Now, let's try hitting a different a resource. The example config says there is a limit of _3 requests per hour for GET /pantry/cookies/*, by IP_. The examples below all match the following rule in `example-config.{ini,json}`:
+
+```ini
+[method=GET path=/pantry/cookies/* ip=*]
+creditLimit = 3
+resetSeconds = 3600
+actorField = ip
+comment = '3 requests per hour for GET /pantry/cookies, by IP'
+```
+
+Let's simulate a single IP fetching a variety of cookies:
 
 ```
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/chocolate-chip ip=192.168.1.1
 OK true 2 3600
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/chocolate-chip ip=192.168.1.1
 OK true 1 3599
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/oatmeal ip=192.168.1.1
 OK true 0 3598
-HIT method=GET path=/pantry/cookies ip=192.168.1.1
+HIT method=GET path=/pantry/cookies/cricket-flavored ip=192.168.1.1
 OK false 0 3597
 ```
 
-You can see that the last attempt was denied, because we have already had 3 cookies this hour. What if we use a different IP?
+You can see that the last attempt was denied, because this IP had already consumed 3 cookies this hour. What if we use a different IP?
 
 ```
-HIT method=GET path=/pantry/cookies ip=4.3.2.1
+HIT method=GET path=/pantry/cookies/oatmeal ip=4.3.2.1
 OK true 2 3600
 ```
 
-This policy illustrates a powerful concept: automatic partitioning of counters based on the _actor_, which in this case is configured to be whatever value is given as `ip`.
+This policy illustrates a powerful concept: Automatic partitioning of counters based on the _actor_, which in this case is configured to be whatever value is given as `ip`.
 
 ## Protocol
 
@@ -212,16 +227,46 @@ Configuration is expressed as a sequence of *buckets*. Buckets have the followin
 * `operation`: Zero or more key-value pairs which must be found in the incoming `HIT` request.
   * The special value `*` may be used here to express, "key must be present, but any value can match".
   * Glob keys are supported in the interest of specifying limits across subpaths, such as `/v1/billing/*`.
-* `creditLimit`: The number of hits that are allowed in the quota period. Must be >= 0.
-* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds. Must be > 0.
-
-Bucket order is signficant: Quota is determined for a `HIT` request by finding the first bucket where all key/value pairs required by the bucket's `operation` match the request. Additional key/value pairs in the request *may* be ignored.
+* `creditLimit`: The number of hits that are allowed in the quota period, typically a positive integer. A value of zero will cause matching requests to always be denied (see _"Always allowing or denying"_).
+* `resetSeconds`: The quota period; reset the counter and refresh quota after this many seconds, typically a positive integer. A value of zero has special meaning (see _"Always allowing or denying"_).
 
 The following optional fields are also supported:
 
 * `label`: A short, slug-like name for the rule. If set, Prometheus metrics for hits matching the rule will be labeled with `rule_label` as this value. Labels have no effect on statsd metrics.
 * `comment`: A diagnostic comment, printed when running server with `DEBUG=divvy`.
 * `actorField`: Described in _"Actors and multi-tenancy"_.
+* `matchPolicy`: Either `"stop"` (the default), or `"canary"`. See _"Advanced usage"_ for details on canarying rules.
+
+### Rule order
+
+Bucket order is signficant: Quota is determined for a `HIT` request by finding the first bucket where all key/value pairs required by the bucket's `operation` match the request. Additional key/value pairs in the request *may* be ignored.
+
+### Always allowing or denying
+
+Zero values have special semantic meaning:
+
+* **Always allow:** When `resetSeconds` is `0` and `creditLimit` is a positive number, matching requests are _always allowed_; no counters are touched on the backend.
+* **Always deny:** When `creditLimit` is `0`, matching requests are _never allowed_; no counters are touched on the backend.
+
+### Default rule
+
+All configuration files _must_ define a final, default rule, which will be matched when no other rules match.
+
+Example default rules:
+
+```ini
+[default]
+creditLimit = 0
+resetSeconds = 0
+comment = 'Default deny!'
+```
+
+```ini
+[default]
+creditLimit = 1
+resetSeconds = 0
+comment = 'Default accept!'
+```
 
 ### File format
 
@@ -271,6 +316,69 @@ OK true 99 60                   <-- fresh quota!
 
 **Note:** Divvy never interprets the value of `actorField`. Since Divvy automatically tracks new quota upon receiving a new actor, clients must be careful to normalize these fields.
 
+## Advanced usage
+
+### Canarying rules
+
+By default when responding to an incoming request, the server will evaluate the request sequentially against all rules, stopping and returning a protocol response based on the first rule that matches. We call this "stop upon match" behavior the _"match policy"_ of the rule, and the default setting corresponds to a rule configuration of `"matchPolicy": "stop"`.
+
+Sometimes, you may wish to deploy a new rule and observe its match rate, but not (yet) serve a protocol response based on it. In these cases, the quota of the rule should be decremented and metrics should be published, but the server should ignore the accept/reject result and continue on to the next rule. We call this "canarying" the rule, and it can be configured on a per-rule basis as `"matchPolicy": "canary"`.
+
+#### Example canary rule
+
+Let's say you have the following configuration deployed to production:
+
+```ini
+[method=GET path=/pantry/cookies/* ip=*]
+creditLimit = 3
+resetSeconds = 3600
+actorField = ip
+comment = '3 requests per hour for GET /pantry/cookies, by IP'
+
+[method=GET path=/pantry/* ip=*]
+creditLimit = 1
+resetSeconds = 3600
+actorField = ip
+comment = '1 request per day for GET /pantry/*, by IP'
+```
+
+Let's say you'd like to add a new rule ahead of these: Allow at most one "special cookie" to be requested per day, across all IPs. We update the configuration file with this as a new highest-precedence rule:
+
+```ini
+[method=GET path=/pantry/cookies/special-cookie]
+creditLimit = 1
+resetSeconds = 86400
+comment = 'canary: 1 request per day for GET /pantry/cookies/special-cookie'
+matchPolicy = canary  # <----- Canary this rule, don't take action on it.
+
+[method=GET path=/pantry/cookies/* ip=*]
+creditLimit = 3
+resetSeconds = 3600
+actorField = ip
+comment = '3 requests per hour for GET /pantry/cookies, by IP'
+
+[method=GET path=/pantry/* ip=*]
+creditLimit = 1
+resetSeconds = 3600
+actorField = ip
+comment = '1 request per day for GET /pantry/*, by IP'
+```
+
+Requests matching this rule will test and decrement its quota, and publish metrics, but the response will fall through to other rules:
+
+```
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK true 2 3600
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK true 1 3599
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK true 0 3598
+HIT method=GET path=/pantry/cookies/special-cookie ip=192.168.1.1
+OK false 0 3597
+```
+
+After looking at metrics and confirming expected behavior, you can promote this rule to take action by setting `"matchPolicy": "stop"` in the config, or simply deleting the `matchPolicy` line as `"stop"` is the default policy.
+
 ## Server options
 
 The server can be configured with several environment variables.
@@ -287,10 +395,14 @@ The server can be configured with several environment variables.
 
 ## Statistics
 
+### Statsd
+
 If `STATSD_HOST` and `STATSD_PORT` are given, the server will report certain metrics to it:
 * Counters
   * `<prefix>.hit.accepted`: Count `HIT` operations where quota was available.
-  * `<prefix>.hit.rejected`: Count `HIT` operations where quota was not availabled.
+    * `<prefix>.hit.accepted.<label>`: Additional counter incremented when rule has a label.
+  * `<prefix>.hit.rejected`: Count `HIT` operations where quota was not available.
+    * `<prefix>.hit.rejected.<label>`: Additional counter incremented when rule has a label.
   * `<prefix>.error.unknown-command`: Count of `ERR unknown-command`.
   * `<prefix>.error.unknown`: Count of `ERR unknown`.
 * Timers
@@ -298,14 +410,17 @@ If `STATSD_HOST` and `STATSD_PORT` are given, the server will report certain met
 * Gauges
   * `<prefix>.connections`: Concurrent connections.
 
-Alternatively if you are using Prometheus, you may specify the `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables to collect and metrics and allow your Prometheus scraper to query them. The following metrics will be collected:
+### Prometheus
+
+If you are using Prometheus, you may specify the `HTTP_SERVICE_PORT` and `PROMETHEUS_METRICS_PATH` environment variables to publish metrics and allow your Prometheus scraper to query them. The following metrics will be published:
 
 * `divvy_tcp_connections_total`: Gauge of current open TCP connections.
 * `divvy_hit_duration_seconds`: Histogram of processing duration for HITs.
-* `divvy_hits_total`: Counter of all HIT operations.
-  * Labels: `status` (either `accepted` or `rejected`), `type` (either `none`, `rule`, or `default`).
-* `divvy_errors_total`: Counter of divvy errors.
-  * Labels: `code` (the type of error, such as `unknown-command`).
+* `divvy_hits_total`: Counter of all HIT operations. Labeled by:
+  * `status`: either `accepted` or `rejected` for normal rules; either `canary-accepted` or `canary-rejected` for rules with `"canary"` match policy.
+  * `rule_label`: the rule's `label` field, if specified.
+* `divvy_errors_total`: Counter of divvy errors. Labeled by:
+  * `code`: the type of error, such as `unknown-command`.
 
 ## Client Libraries
 
@@ -315,4 +430,4 @@ Alternatively if you are using Prometheus, you may specify the `HTTP_SERVICE_POR
 
 Licensed under the MIT license. See `LICENSE.txt` for full terms.
 
-Copyright 2016 Button, Inc.
+Copyright 2016-2019 Button, Inc.
