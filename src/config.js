@@ -23,7 +23,7 @@ const REGEX_ESCAPE_CHARACTERS = /[-[\]{}()+?.,\\^$|#]/g;
 const RULE_LABEL_REGEX = /^[a-zA-Z0-9_-]{1,255}$/;
 
 function isGlobValue(v) {
-  return v.endsWith('*');
+  return v.endsWith('*') || v.match(/\/\*\//);
 }
 
 class Config {
