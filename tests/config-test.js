@@ -104,7 +104,7 @@ describe('src/config', function () {
         const first = '/resource/*/first';
         const last = '/resource/*/last';
         config.addRule({ operation: { path: first, method: 'POST' }, creditLimit: 100, resetSeconds: 60 });
-        config.addRule({ operation: { path: first, method: 'POST' }, creditLimit: 10, resetSeconds: 20 });
+        config.addRule({ operation: { path: last, method: 'POST' }, creditLimit: 10, resetSeconds: 20 });
 
         assert.equal(config.rules[0].operation.path, first);
         assert.equal(config.rules[1].operation.path, last);
