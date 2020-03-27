@@ -99,6 +99,31 @@ describe('src/config', function () {
         }, /Unreachable rule/);
       });
 
+      it('with an unreachable glob rule', function () {
+        const config = new Config();
+        const first = '/resource/*/first';
+        const last = '/resource/*/last';
+        config.addRule({ operation: { path: first, method: 'POST' }, creditLimit: 100, resetSeconds: 60 });
+        config.addRule({ operation: { path: first, method: 'POST' }, creditLimit: 10, resetSeconds: 20 });
+
+        assert.equal(config.rules[0].operation.path, first);
+        assert.equal(config.rules[1].operation.path, last);
+
+        config.addRule({
+          operation: { path: '/resource/*', method: 'POST' },
+          creditLimit: 100,
+          resetSeconds: 60,
+        });
+
+        assert.throws(() => {
+          config.addRule({
+            operation: { path: '/resource/*/unreachable', method: 'POST' },
+            creditLimit: 100,
+            resetSeconds: 60,
+          });
+        }, /Unreachable rule/);
+      });
+
       it('with a rule containing an invalid creditLimit', function () {
         const config = new Config();
         config.addRule({ operation: { service: 'myservice', method: 'GET' }, creditLimit: 0, resetSeconds: 60 });
