@@ -1,5 +1,9 @@
 # Divvy Changelog
 
+## v1.6.1 (2020-03-27)
+
+* Bugfix: Broken glob test
+
 ## v1.6.0 (2020-03-27)
 
 * Feature: Extend glob support to include non-terminal wildcards.
