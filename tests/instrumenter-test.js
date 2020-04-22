@@ -56,6 +56,26 @@ describe('src/instrumenter', function () {
     sinon.assert.calledWith(this.instrumenter.statsd.timing, 'hit', start);
     assert.equal(this.instrumenter.hitDurationHistogram.hashMap[''].sum, 1);
     assert.equal(this.instrumenter.hitDurationHistogram.hashMap[''].count, 1);
+    assert.deepEqual({
+      0.001: 0,
+      0.002: 0,
+      0.005: 0,
+      0.01: 0,
+      0.1: 0,
+      0.5: 1,
+    }, this.instrumenter.hitDurationHistogram.hashMap[''].bucketValues);
+
+    const secondHit = new Date();
+    this.clock.tick(97);
+    this.instrumenter.timeHit(secondHit);
+    assert.deepEqual({
+      0.001: 0,
+      0.002: 0,
+      0.005: 0,
+      0.01: 0,
+      0.1: 1,
+      0.5: 1,
+    }, this.instrumenter.hitDurationHistogram.hashMap[''].bucketValues);
   });
 
   it('records the number of HIT operations', function () {
