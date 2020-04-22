@@ -52,6 +52,7 @@ class Instrumenter {
     this.hitDurationHistogram = new PrometheusClient.Histogram({
       name: 'divvy_hit_duration_seconds',
       help: 'Histogram of Divvy processing time for HITs.',
+      buckets: [0.001, 0.002, 0.005, 0.01, 0.1, 0.5],
     });
 
     this.hitCounter = new PrometheusClient.Counter({
