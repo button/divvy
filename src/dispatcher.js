@@ -61,6 +61,9 @@ class Dispatcher {
    * a response is written to the socket in the order requests are received.
    *
    * @param  {string} line
+   * @return {Promise} A meaningless promise. It is returned to help tests
+   *   synchronize their assertions withe behavior internal to the Dispatcher,
+   *   but should not be relied upon for anything.
    */
   handle(line) {
     let p;
