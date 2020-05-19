@@ -10,11 +10,11 @@ const sinon = require('sinon');
  */
 
 describe('src/server', function () {
-  before(function () {
+  beforeEach(function () {
     this.clock = sinon.useFakeTimers();
   });
 
-  after(function () {
+  afterEach(function () {
     this.clock.restore();
   });
 
@@ -25,6 +25,9 @@ describe('src/server', function () {
     let serverPort;
     let client;
     let instrumenter;
+    let clients;
+    let getClient;
+    let close;
 
     beforeEach(function (done) {
       config = Config.fromIniFile(`${__dirname}/test-config.ini`);
@@ -44,6 +47,7 @@ describe('src/server', function () {
         gaugeCurrentConnections: sinon.spy(),
       };
 
+
       // Create a server on port 0 (ephemeral / randomly-selected port)
       server = new Server({
         port: 0,
@@ -52,11 +56,24 @@ describe('src/server', function () {
         instrumenter,
       });
 
+      // Get a new client, and keep track of it so we can clean up connections.
+      clients = [];
+      getClient = () => {
+        if (!serverPort) {
+          throw new Error('Cannot return client until server is bound');
+        }
+
+        const c = new Client('', serverPort);
+        c.connect();
+
+        clients.push(c);
+        return c;
+      };
+
       // Once the server is bound, connect a client.
       server.on('listening', (address) => {
         serverPort = address.port;
-        client = new Client('', serverPort);
-        client.connect();
+        client = getClient();
       });
 
       // Once the client has connected, verify connection count and finish.
@@ -68,8 +85,16 @@ describe('src/server', function () {
 
       // Initialize backend then bind server.
       backend.initialize().then(() => {
-        server.serve();
+        close = server.serve();
       });
+    });
+
+    afterEach(function() {
+      // Close the server
+      close();
+
+      // Close the client connections
+      clients.map(c => c.close());
     });
 
     it('for an operation where all params match', function (done) {
@@ -278,16 +303,11 @@ describe('src/server', function () {
     });
 
     it('tracks connections', function (done) {
-      const client2 = new Client('', serverPort);
-      client2.connect();
+      getClient();
+      getClient();
+      getClient();
 
-      const client3 = new Client('', serverPort);
-      client3.connect();
-
-      const client4 = new Client('', serverPort);
-      client4.connect();
-
-      let expectedConnections = 2;
+      let expectedConnections = 1;
       server.on('client-connected', () => {
         sinon.assert.calledWith(instrumenter.gaugeCurrentConnections, expectedConnections);
         expectedConnections++;

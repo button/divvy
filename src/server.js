@@ -84,6 +84,8 @@ class Server extends EventEmitter {
       this.emit('listening', server.address());
     });
     server.listen(this.port);
+
+    return () => server.close();
   }
 
   handleCommand(line, conn) {
