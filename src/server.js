@@ -6,12 +6,10 @@ const carrier = require('carrier');
 const Constants = require('./constants');
 const Errors = require('./errors');
 const Utils = require('./utils');
+const { Dispatcher, ok, error } = require('./dispatcher');
 const { invariant } = Utils;
 
 const DEFAULT_PORT = 8321;
-
-const STATUS_OK = 'OK';
-const STATUS_ERROR = 'ERR';
 
 const ERROR_CODE_UNKNOWN_COMMAND = 'unknown-command';
 const ERROR_CODE_UNKNOWN = 'unknown';
@@ -49,6 +47,9 @@ class Server extends EventEmitter {
 
   serve() {
     const server = net.createServer((conn) => {
+      const handler = l => this.handleCommand(l);
+      const dispatcher = new Dispatcher({ conn, handler });
+
       const remoteAddr = conn.address();
       const addr = `${remoteAddr.address}:${remoteAddr.port}`;
 
@@ -61,7 +62,7 @@ class Server extends EventEmitter {
       this.instrumenter.gaugeCurrentConnections(this.currentConnections);
 
       carrier.carry(conn, (line) => {
-        this.handleCommand(line, conn);
+        dispatcher.handle(line);
       });
 
       this.emit('client-connected', conn);
@@ -88,22 +89,22 @@ class Server extends EventEmitter {
     return () => server.close();
   }
 
-  handleCommand(line, conn) {
+  async handleCommand(line) {
     debug('received command: "%s"', line);
-    if (!line) {
-      return;
-    }
 
     const startDate = new Date();
     try {
       const command = Utils.parseCommand(line);
-      this.handleHit(conn, command.operation, startDate);
+      return this.handleHit(command.operation, startDate);
     } catch (e) {
+      let errorCode = ERROR_CODE_UNKNOWN;
+
       if (e instanceof Errors.UnknownCommandError) {
-        this.sendError(conn, ERROR_CODE_UNKNOWN_COMMAND, e.message);
-      } else {
-        this.sendError(conn, ERROR_CODE_UNKNOWN, e.message);
+        errorCode = ERROR_CODE_UNKNOWN_COMMAND;
       }
+
+      this.instrumenter.countError(errorCode);
+      return error(`${errorCode} "${e.message}"`);
     }
   }
 
@@ -150,33 +151,14 @@ class Server extends EventEmitter {
     return lastStatus;
   }
 
-  async handleHit(conn, operation, startDate) {
-    try {
-      const rules = this.config.findRules(operation);
-      const status = await this.evaluateRules(rules, operation);
-      this.sendStatus(conn, STATUS_OK,
-        `${!!status.isAllowed} ${status.currentCredit} ${status.nextResetSeconds}`);
-      this.instrumenter.timeHit(startDate);
-    } catch (err) {
-      this.sendError(conn, `Server error: ${err}`);
-    }
-  }
+  async handleHit(operation, startDate) {
+    const rules = this.config.findRules(operation);
+    const status = await this.evaluateRules(rules, operation);
+    this.instrumenter.timeHit(startDate);
 
-  sendError(conn, errorCode, errorMessage) {
-    this.sendStatus(conn, STATUS_ERROR, `${errorCode} "${errorMessage}"`);
-    this.instrumenter.countError(errorCode);
-  }
-
-  sendStatus(conn, status, message) {
-    // Don't write if the socket is not writable. This is the case
-    // when the connection closes between event loop ticks (i.e. while a
-    // backend response is being fulfilled).
-    if (conn.writable) {
-      conn.write(`${status} ${message}\n`);
-    }
-    if (status === STATUS_ERROR || !conn.writable) {
-      conn.destroy();
-    }
+    return ok(
+      `${!!status.isAllowed} ${status.currentCredit} ${status.nextResetSeconds}`
+    );
   }
 
   static getMatchType(rule) {
