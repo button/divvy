@@ -37,8 +37,7 @@ const error = makeResult(STATUS_ERROR);
  *   * Taking on more of the connection management (e.g, reading)
  *   * More timing metrics (end-to-end processing time of a request)
  *   * Limits on the amount of requests we'll queue against a socket
- *   * Limits on the amount of in-flight requests being actively being
- *     processed.
+ *   * Limits on the amount of in-flight requests actively being processed.
  *   * Handler timeouts
  */
 class Dispatcher {
