@@ -43,9 +43,9 @@ describe('src/instrumenter', function () {
   });
 
   it('records the duration of a HIT', function () {
-    // Grab a start date and move forward a second so we have some imaginary duration
+    // Grab a start date and move forward a 1/2 second so we have some imaginary duration
     const start = new Date();
-    this.clock.tick(1000);
+    this.clock.tick(499);
 
     sinon.assert.notCalled(this.instrumenter.statsd.timing);
     assert.equal(this.instrumenter.hitDurationHistogram.hashMap[''].sum, 0);
@@ -54,7 +54,7 @@ describe('src/instrumenter', function () {
     this.instrumenter.timeHit(start);
     sinon.assert.callCount(this.instrumenter.statsd.timing, 1);
     sinon.assert.calledWith(this.instrumenter.statsd.timing, 'hit', start);
-    assert.equal(this.instrumenter.hitDurationHistogram.hashMap[''].sum, 1);
+    assert.equal(this.instrumenter.hitDurationHistogram.hashMap[''].sum, 0.499);
     assert.equal(this.instrumenter.hitDurationHistogram.hashMap[''].count, 1);
     assert.deepEqual({
       0.001: 0,
