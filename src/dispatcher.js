@@ -39,6 +39,7 @@ const error = makeResult(STATUS_ERROR);
  *   * Limits on the amount of requests we'll queue against a socket
  *   * Limits on the amount of in-flight requests being actively being
  *     processed.
+ *   * Handler timeouts
  */
 class Dispatcher {
   /**
@@ -46,7 +47,7 @@ class Dispatcher {
    * @param  {string => Promise} options.handler
    * @return {Dispatcher}
    */
-  constructor({ conn, handler }) {
+  constructor({ conn, handler } = {}) {
     invariant(!!conn, 'Must provide conn to Dispatcher');
     invariant(typeof handler === 'function', 'Must provide handler function to Dispatcher');
 
@@ -70,8 +71,12 @@ class Dispatcher {
       p = Promise.reject(e);
     }
 
+    // We apply the catch handler early to convince node that rejections won't
+    // go uncaught.
+    p = p.catch(e => error(`Internal Error: ${e.message}`));
+
     this.queue.push(p);
-    this.flush();
+    return this.flush();
   }
 
   /**
@@ -86,14 +91,8 @@ class Dispatcher {
     this.flushing = true;
 
     while (this.queue.length) {
-      const p = this.queue.shift();
-
-      try {
-        const { status, message } = await p;
-        this.write(status, message);
-      } catch (e) {
-        this.write(STATUS_ERROR, `Server error: ${e}`);
-      }
+      const { status, message } = await this.queue.shift();
+      this.write(status, message);
     }
 
     debug('finishing dispatch flush');
@@ -113,18 +112,18 @@ class Dispatcher {
     }
 
     if (!STATUSES.has(status)) {
-      status = STATUS_ERROR;
       message = `Internal Error: Unknown status (${status})`;
+      status = STATUS_ERROR;
     }
 
     if (typeof message !== 'string') {
-      status = STATUS_ERROR;
       message = `Internal Error: Invalid message type (${typeof message})`;
+      status = STATUS_ERROR;
     }
 
     if (message.includes('\n')) {
-      status = STATUS_ERROR;
       message = `Internal Error: Message contained newlines`;
+      status = STATUS_ERROR;
     }
 
     debug('writing %s response to socket', status);
