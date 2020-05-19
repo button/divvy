@@ -1,5 +1,9 @@
 # Divvy Changelog
 
+## v1.7.1 (2020-05-19)
+
+* Bugfix: ensure ordered delivery of responses per connection.
+
 ## v1.7.0 (2020-04-21)
 
 * Instrumentation: Revised `divvy_hit_duration_seconds` historgram buckets to more appropriate values: `[1ms, 2ms, 5ms, 10ms, 100ms, 500ms]`.
