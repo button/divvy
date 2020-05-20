@@ -10,11 +10,11 @@ const sinon = require('sinon');
  */
 
 describe('src/server', function () {
-  before(function () {
+  beforeEach(function () {
     this.clock = sinon.useFakeTimers();
   });
 
-  after(function () {
+  afterEach(function () {
     this.clock.restore();
   });
 
@@ -25,6 +25,9 @@ describe('src/server', function () {
     let serverPort;
     let client;
     let instrumenter;
+    let clients;
+    let getClient;
+    let close;
 
     beforeEach(function (done) {
       config = Config.fromIniFile(`${__dirname}/test-config.ini`);
@@ -44,6 +47,7 @@ describe('src/server', function () {
         gaugeCurrentConnections: sinon.spy(),
       };
 
+
       // Create a server on port 0 (ephemeral / randomly-selected port)
       server = new Server({
         port: 0,
@@ -52,11 +56,24 @@ describe('src/server', function () {
         instrumenter,
       });
 
+      // Get a new client, and keep track of it so we can clean up connections.
+      clients = [];
+      getClient = () => {
+        if (!serverPort) {
+          throw new Error('Cannot return client until server is bound');
+        }
+
+        const c = new Client('', serverPort);
+        c.connect();
+
+        clients.push(c);
+        return c;
+      };
+
       // Once the server is bound, connect a client.
       server.on('listening', (address) => {
         serverPort = address.port;
-        client = new Client('', serverPort);
-        client.connect();
+        client = getClient();
       });
 
       // Once the client has connected, verify connection count and finish.
@@ -68,8 +85,16 @@ describe('src/server', function () {
 
       // Initialize backend then bind server.
       backend.initialize().then(() => {
-        server.serve();
+        close = server.serve();
       });
+    });
+
+    afterEach(function() {
+      // Close the server
+      close();
+
+      // Close the client connections
+      clients.map(c => c.close());
     });
 
     it('for an operation where all params match', function (done) {
@@ -230,6 +255,173 @@ describe('src/server', function () {
       });
     });
 
+    it('for concurrent commands', async function () {
+      this.clock.restore();
+
+      // Inject latency into the first backend hit
+      backend.hit.onCall(0).callsFake(() => new Promise(r => setTimeout(
+        () => r({ isAllowed: false, currentCredit: 0, nextResetSeconds: 60 }),
+        10
+      )));
+
+      backend.hit.onCall(1).returns(Promise.resolve({
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      }));
+
+      const hit1 = client.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      });
+
+      const hit2 = client.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      });
+
+      const [res1, res2] = await Promise.all([hit1, hit2]);
+
+      assert.deepEqual(res1, {
+        isAllowed: false,
+        currentCredit: 0,
+        nextResetSeconds: 60,
+      });
+
+      assert.deepEqual(res2, {
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      });
+    });
+
+    it('for sequential commands on the same socket', async function () {
+      backend.hit.onCall(0).returns(Promise.resolve({
+        isAllowed: false,
+        currentCredit: 0,
+        nextResetSeconds: 60,
+      }));
+
+      backend.hit.onCall(1).returns(Promise.resolve({
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      }));
+
+      const hit1 = await client.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      });
+
+      assert.deepEqual(hit1, {
+        isAllowed: false,
+        currentCredit: 0,
+        nextResetSeconds: 60,
+      });
+
+      const hit2 = await client.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      });
+
+      assert.deepEqual(hit2, {
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      });
+    });
+
+    it('for concurrent requests on different sockets', async function() {
+      // We will create two connections. On the default connection, we will
+      // write to HITs, the first of which will be very slow to process, and
+      // the second of which will be fast.
+      //
+      // Concurrently, we will send a single HIT on another connection, which
+      // we expect to not wait on the other socket.
+      //
+      // This array will keep track of who finishes when.
+      //
+      const sequence = [];
+      const client2 = getClient();
+
+      await new Promise(r => client2.on('connected', r));
+
+      this.clock.restore();
+
+      // Inject latency into the first backend hit
+      backend.hit.onCall(0).callsFake(() => new Promise(r => setTimeout(
+        () => r({ isAllowed: false, currentCredit: 0, nextResetSeconds: 60 }),
+        10
+      )));
+
+      backend.hit.onCall(1).returns(Promise.resolve({
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      }));
+
+      backend.hit.onCall(2).returns(Promise.resolve({
+        isAllowed: true,
+        currentCredit: 200,
+        nextResetSeconds: 60,
+      }));
+
+      const hit1 = client.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      }).then((r) => { sequence.push('socket 1; hit 1'); return r; });
+
+      const hit2 = client.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      }).then((r) => { sequence.push('socket 1; hit 2'); return r; });
+
+      const hit3 = client2.hit({
+        method: 'GET',
+        path: '/ping',
+        isAuthenticated: 'true',
+        ip: '1.2.3.4',
+      }).then((r) => { sequence.push('socket 2; hit 1'); return r; });
+
+      const [res1, res2, res3] = await Promise.all([hit1, hit2, hit3]);
+
+      assert.deepEqual(res1, {
+        isAllowed: false,
+        currentCredit: 0,
+        nextResetSeconds: 60,
+      });
+
+      assert.deepEqual(res2, {
+        isAllowed: true,
+        currentCredit: 100,
+        nextResetSeconds: 60,
+      });
+
+      assert.deepEqual(res3, {
+        isAllowed: true,
+        currentCredit: 200,
+        nextResetSeconds: 60,
+      });
+
+      assert.deepEqual(sequence, [
+        'socket 2; hit 1',
+        'socket 1; hit 1',
+        'socket 1; hit 2',
+      ]);
+    });
+
     it('for an unknown command', function (done) {
       client._enqueueMessage('EGGPLANT not-tasty\n').promise.then(() => {
         done(new Error('Should have failed'));
@@ -278,16 +470,11 @@ describe('src/server', function () {
     });
 
     it('tracks connections', function (done) {
-      const client2 = new Client('', serverPort);
-      client2.connect();
+      getClient();
+      getClient();
+      getClient();
 
-      const client3 = new Client('', serverPort);
-      client3.connect();
-
-      const client4 = new Client('', serverPort);
-      client4.connect();
-
-      let expectedConnections = 2;
+      let expectedConnections = 1;
       server.on('client-connected', () => {
         sinon.assert.calledWith(instrumenter.gaugeCurrentConnections, expectedConnections);
         expectedConnections++;
