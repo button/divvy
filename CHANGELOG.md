@@ -1,5 +1,11 @@
 # Divvy Changelog
 
+## v1.8.0 (2021-01-19)
+
+* Bump dependencies
+* Update node version to v14
+* Replaces assert-diff with node assert
+
 ## v1.7.1 (2020-05-19)
 
 * Bugfix: ensure ordered delivery of responses per connection.

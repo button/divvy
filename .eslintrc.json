@@ -1,3 +1,3 @@
 {
-  "extends": ["button-platform"]
+  "extends": ["@button/eslint-config-button-platform"]
 }

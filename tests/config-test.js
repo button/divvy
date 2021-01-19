@@ -1,5 +1,5 @@
 const Config = require('../src/config');
-const assert = require('assert-diff');
+const assert = require('assert');
 
 describe('src/config', function () {
   ['ini', 'json'].forEach(function (ext) {
