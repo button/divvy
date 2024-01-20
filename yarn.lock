@@ -1259,10 +1259,10 @@ sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
 
-statsd-client@^0.4.4:
-  version "0.4.4"
-  resolved "https://registry.yarnpkg.com/statsd-client/-/statsd-client-0.4.4.tgz#75b05717bd3d00ef296a9f3cb546bcb16596f77f"
-  integrity sha512-GjAReJDNZomTTTaIaDuDddWknHO2GXmXS/9JKy6iQFOHNSQ4yeaRGP18oNgahl+c3XTUfUWBYIUnipznNh5Vww==
+statsd-client@^0.4.7:
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/statsd-client/-/statsd-client-0.4.7.tgz#a423894bd80bd27524c992001511530ef16933d1"
+  integrity sha512-+sGCE6FednJ/vI7vywErOg/mhVqmf6Zlktz7cdGRnF/cQWXD9ifMgtqU1CIIXmhSwm11SCk4zDN+bwNCvIR/Kg==
 
 "string-width@^1.0.2 || 2":
   version "2.1.1"
