@@ -18,7 +18,13 @@ if (!configFile) {
 const config = Config.fromFile(configFile);
 const redisPort = parseInt(process.env.REDIS_PORT, 10) || 6379;
 const redisHost = process.env.REDIS_HOST || 'localhost';
-const redisClient = redis.createClient(redisPort, redisHost);
+const redisUseTls = process.env.REDIS_USE_TLS === '1' || process.env.REDIS_USE_TLS === 'true';
+
+const redisOptions = { host: redisHost, port: redisPort };
+if (redisUseTls) {
+  redisOptions.tls = {};
+}
+const redisClient = redis.createClient(redisOptions);
 const backend = new Backend({ redisClient });
 
 const httpServicePort = process.env.HTTP_SERVICE_PORT;
