@@ -386,6 +386,7 @@ The server can be configured with several environment variables.
 * `PORT`: TCP port to listen on (default: `8321`).
 * `REDIS_HOST`: Hostname of redis backend (default: `localhost`).
 * `REDIS_PORT`: Port number of redis backend (default: `6379`).
+* `REDIS_USE_TLS`: If set (e.g. to `1` or `true`), connect to Redis over TLS.
 * `STATSD_HOST`: Hostname of statsd server, see "Statistics" (no default).
 * `STATSD_PORT`: Port of statsd server (no default);
 * `STATSD_PREFIX`: Optional prefix to use with statsd metrics (no default).

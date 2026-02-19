@@ -1,5 +1,9 @@
 # Divvy Changelog
 
+## v1.8.0 (2026-02-18)
+
+* Feature: Optionally allow a redis connection over TLS with a `REDIS_USE_TLS` env var.
+
 ## v1.7.1 (2020-05-19)
 
 * Bugfix: ensure ordered delivery of responses per connection.
